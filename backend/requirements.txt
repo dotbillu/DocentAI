@@ -4,6 +4,10 @@ requests
 beautifulsoup4
 lxml
 trafilatura
-google-generativeai
 python-dotenv
 numpy
+pypdf
+python-multipart
+google-genai 
+python-dotenv
+groq

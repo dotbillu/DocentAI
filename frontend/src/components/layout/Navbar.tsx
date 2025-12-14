@@ -25,7 +25,7 @@ export default function Navbar() {
         {/* 1. LEFT: Logo */}
         <div className="flex items-center z-20">
           <Link href="/" className="text-2xl font-bold tracking-tighter text-white">
-            Decent<span className="text-titanium-400"> AI</span>
+            Docent<span className="text-titanium-400"> AI</span>
           </Link>
         </div>
 

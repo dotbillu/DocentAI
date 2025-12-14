@@ -69,7 +69,7 @@ The repository uses a conventional Next.js + TypeScript layout with App Router:
     - page.tsx — Home page (landing/overview).
   - components/
     - dashboard/
-      - DecentAIBanner.tsx — Banner component for dashboard pages.
+      - DocentAIBanner.tsx — Banner component for dashboard pages.
       - FileTree.tsx — Domain-specific file tree for the dashboard.
       - Hero.tsx — Hero section component for landing/marketing context.
       - Horizon.tsx — Section/divider component used in dashboard context.
@@ -115,7 +115,7 @@ Key component groups and their typical responsibilities:
   - FileTree (dashboard): domain-specific file listing for the workspace.
   - PromptBar: prompt input and action triggers.
   - PreviewWindow: renders preview of selected/edited content.
-  - DecentAIBanner, Hero, Horizon: supporting/marketing visuals.
+  - DocentAIBanner, Hero, Horizon: supporting/marketing visuals.
 
 - Layout components (src/components/layout/)
   - Navbar/BigFooter/Footer: shared site chrome and global sections.

@@ -1,23 +1,26 @@
+// src/app/layout.tsx
 import type { Metadata } from "next";
 import { Rasa, Inter, JetBrains_Mono } from "next/font/google";
 import Navbar from "../components/layout/Navbar";
-// REMOVED: import Footer from "@/components/layout/Footer"; <--- DELETE THIS LINE
+import Horizon from "../components/dashboard/Horizon";
 import "./globals.css";
+// --- JOTAI IMPORT ---
+import { Provider } from "jotai";
 
-const rasa = Rasa({ 
-  subsets: ["latin"], 
+const rasa = Rasa({
+  subsets: ["latin"],
   variable: "--font-rasa",
-  weight: ["300", "400", "500", "600", "700"] 
+  weight: ["300", "400", "500", "600", "700"]
 });
 
-const inter = Inter({ 
-  subsets: ["latin"], 
-  variable: "--font-inter" 
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter"
 });
 
-const jetbrains = JetBrains_Mono({ 
-  subsets: ["latin"], 
-  variable: "--font-jetbrains" 
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains"
 });
 
 export const metadata: Metadata = {
@@ -32,18 +35,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${rasa.variable} ${inter.variable} ${jetbrains.variable} font-sans bg-titanium-950 text-titanium-100 overflow-x-hidden flex flex-col min-h-screen`}>
-        
-        {/* Navbar stays fixed at top */}
-        <Navbar />
-        
-        {/* Main Content */}
-        <main className="flex-1 pt-16 relative"> 
-            {children}
-        </main>
-
-        {/* REMOVED: <Footer /> <--- DELETE THIS LINE */}
-        
+      <body className={`${rasa.variable} ${inter.variable} ${jetbrains.variable} font-sans bg-titanium-950 text-titanium-100 flex flex-col h-screen overflow-hidden`}>
+        {/* ADDED JOTAI PROVIDER */}
+        <Provider>
+          <Horizon />
+          <div className="shrink-0 relative z-50">
+             <Navbar />
+          </div>
+          <main className="flex-1 relative z-10 overflow-hidden flex flex-col">
+             {children}
+          </main>
+        </Provider>
       </body>
     </html>
   );
