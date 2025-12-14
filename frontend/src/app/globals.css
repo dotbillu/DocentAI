@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  /* Define the Titanium Colors */
+  --color-titanium-950: #0f0f10;
+  --color-titanium-900: #18181b;
+  --color-titanium-800: #27272a;
+  --color-titanium-700: #3f3f46;
+  --color-titanium-400: #a1a1aa;
+  --color-titanium-100: #f4f4f5;
+  --color-titanium-gold: #d6cbb6;
+
+  /* Link the fonts from layout.tsx */
+  --font-rasa: var(--font-rasa);
+  --font-inter: var(--font-inter);
+  --font-jetbrains: var(--font-jetbrains);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent; 
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-titanium-700);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b; 
+}
+
+/* Base Styles */
+body {
+  background: linear-gradient(to bottom, transparent, #18181b) #0f0f10;
+  color: var(--color-titanium-100);
+  min-height: 100vh;
+}
+
+/* Utilities */
+@utility text-glow {
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+}
+
+/* Fixed Glass Panel - removed @apply to prevent build errors */
+.glass-panel {
+  background-color: rgba(24, 24, 27, 0.6); /* titanium-900 / 60% */
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(63, 63, 70, 0.5); /* titanium-700 / 50% */
+}
