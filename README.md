@@ -1,1 +1,1 @@
-# DocentAI
+# DocentAI :)
