@@ -67,7 +67,7 @@ export default function Navbar() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute top-full left-1/2 -translate-x-1/2 w-[600px] p-6 bg-titanium-900 border border-titanium-700 rounded-xl shadow-2xl grid grid-cols-2 gap-8 z-50"
+                  className="absolute top-full left-1/2 -translate-x-1/2 w-150 p-6 bg-titanium-900 border border-titanium-700 rounded-xl shadow-2xl grid grid-cols-2 gap-8 z-50"
                 >
                   <div className="space-y-2">
                     <h4 className="text-xs font-semibold text-titanium-400 uppercase tracking-wider mb-3">Resources</h4>
