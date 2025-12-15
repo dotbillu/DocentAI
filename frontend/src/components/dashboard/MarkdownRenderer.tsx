@@ -7,9 +7,9 @@ import javascript from "react-syntax-highlighter/dist/esm/languages/prism/javasc
 import bash from "react-syntax-highlighter/dist/esm/languages/prism/bash";
 import json from "react-syntax-highlighter/dist/esm/languages/prism/json";
 import python from "react-syntax-highlighter/dist/esm/languages/prism/python";
-import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import remarkGfm from "remark-gfm";
-import { Check, Copy, Terminal } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 
 SyntaxHighlighter.registerLanguage("tsx", tsx);
 SyntaxHighlighter.registerLanguage("typescript", typescript);
@@ -48,48 +48,56 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
 
     if (!inline && match) {
       return (
-        <div className="rounded-lg overflow-hidden my-4 border border-titanium-800 bg-[#1e1e1e] shadow-lg">
-          <div className="flex items-center justify-between px-4 py-2 bg-[#2d2d2d] border-b border-titanium-800">
+        <div className="rounded-xl overflow-hidden my-6 border border-white/10 bg-[#09090b] shadow-2xl w-full group">
+          {/* Header Bar */}
+          <div className="flex items-center justify-between px-4 py-2 bg-[#18181b] border-b border-white/5">
             <div className="flex items-center gap-2">
-              <Terminal size={14} className="text-blue-400" />
-              <span className="text-xs font-mono text-gray-400 uppercase">
+              <span className="text-xs font-mono text-zinc-400 font-bold uppercase tracking-wider">
                 {language}
               </span>
             </div>
             <button
               onClick={handleCopy}
-              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+              className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white transition-colors"
             >
               {isCopied ? (
                 <Check size={14} className="text-green-400" />
               ) : (
                 <Copy size={14} />
               )}
-              <span>{isCopied ? "Copied!" : "Copy"}</span>
+              <span>{isCopied ? "Copied" : "Copy code"}</span>
             </button>
           </div>
-          <SyntaxHighlighter
-            style={atomDark}
-            language={language}
-            PreTag="div"
-            customStyle={{
-              margin: 0,
-              padding: "1.5rem",
-              backgroundColor: "transparent",
-              fontSize: "0.875rem",
-              lineHeight: "1.5",
-            }}
-            {...props}
-          >
-            {codeString}
-          </SyntaxHighlighter>
+          
+          {/* Code Area - Force Full Width */}
+          <div className="relative w-full overflow-x-auto">
+            <SyntaxHighlighter
+              style={oneDark}
+              language={language}
+              PreTag="div"
+              customStyle={{
+                margin: 0,
+                padding: "1.5rem",
+                backgroundColor: "#09090b", // Hardcoded pitch black
+                fontSize: "0.875rem",
+                lineHeight: "1.7",
+                fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+              }}
+              codeTagProps={{
+                 style: { fontFamily: 'inherit' }
+              }}
+              {...props}
+            >
+              {codeString}
+            </SyntaxHighlighter>
+          </div>
         </div>
       );
     }
 
     return (
       <code
-        className="bg-titanium-800/50 text-blue-200 px-1.5 py-0.5 rounded text-sm font-mono border border-titanium-700/50"
+        className="bg-white/10 text-blue-200 px-1.5 py-0.5 rounded text-sm font-mono"
         {...props}
       >
         {children}
@@ -98,47 +106,47 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
   };
 
   return (
-    <div className="text-sm text-titanium-100 space-y-2">
+    <div className="w-full text-[15px] leading-8 text-zinc-100 font-normal">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
           code: CodeBlock,
           ul: ({ children }) => (
-            <ul className="list-disc pl-5 my-2 space-y-1">{children}</ul>
+            <ul className="list-disc pl-6 my-4 space-y-2 text-zinc-300">{children}</ul>
           ),
           ol: ({ children }) => (
-            <ol className="list-decimal pl-5 my-2 space-y-1">{children}</ol>
+            <ol className="list-decimal pl-6 my-4 space-y-2 text-zinc-300">{children}</ol>
           ),
           li: ({ children }) => (
-            <li className="text-titanium-200">{children}</li>
+            <li className="pl-1">{children}</li>
           ),
           a: ({ href, children }) => (
             <a
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-400 hover:underline"
+              className="text-blue-400 hover:text-blue-300 hover:underline decoration-blue-400/30 underline-offset-4 transition-all"
             >
               {children}
             </a>
           ),
           h1: ({ children }) => (
-            <h1 className="text-2xl font-bold text-white mt-6 mb-4">
+            <h1 className="text-3xl font-bold text-white mt-10 mb-6 tracking-tight">
               {children}
             </h1>
           ),
           h2: ({ children }) => (
-            <h2 className="text-xl font-bold text-white mt-5 mb-3">
+            <h2 className="text-2xl font-semibold text-white mt-8 mb-4 tracking-tight border-b border-white/10 pb-2">
               {children}
             </h2>
           ),
           h3: ({ children }) => (
-            <h3 className="text-lg font-bold text-white mt-4 mb-2">
+            <h3 className="text-xl font-semibold text-white mt-6 mb-3">
               {children}
             </h3>
           ),
           p: ({ children }) => (
-            <p className="mb-2 last:mb-0 leading-7">{children}</p>
+            <p className="mb-4 last:mb-0">{children}</p>
           ),
         }}
       >

@@ -12,7 +12,7 @@ export default function BigFooter() {
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-1 space-y-4">
             <div className="text-2xl font-bold tracking-tighter text-white">
-              Decent<span className="text-titanium-400"> AI</span>
+              Docent<span className="text-titanium-400"> AI</span>
             </div>
             <p className="text-titanium-400 text-sm leading-relaxed max-w-xs">
               The professional vibe coding tool for building production-ready apps with AI.
@@ -44,7 +44,7 @@ export default function BigFooter() {
 
         {/* Bottom Bar */}
         <div className="border-t border-titanium-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-titanium-500">
-          <p>© {new Date().getFullYear()} Decent AI. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Docent AI. All rights reserved.</p>
           <div className="flex gap-6">
             <Link href="#" className="hover:text-titanium-300">Privacy</Link>
             <Link href="#" className="hover:text-titanium-300">Terms</Link>
