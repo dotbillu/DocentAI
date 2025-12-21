@@ -37,19 +37,14 @@ export default function Sidebar({
       initial={{ width: 260 }}
       animate={{ width: isOpen ? 260 : 72 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="h-full bg-titanium-950 border-r border-t border-titanium-800/50 flex flex-col shrink-0 relative z-40 overflow-hidden"
+      className="h-full bg-[#0A0A0A]/40 backdrop-blur-xl border-r border-titanium-800/20 flex flex-col shrink-0 relative z-40 overflow-hidden"
     >
-      {/* 1. TOP: New Chat Button */}
       <div className="p-2 flex flex-col gap-2">
         <button
           onClick={onNewChat}
           className={clsx(
             "h-10 flex items-center rounded-lg transition-all duration-300 w-full overflow-hidden",
-            "hover:bg-titanium-800 hover:text-titanium-200 text-titanium-400",
-            // Padding Logic:
-            // Closed (72px width): (72 - 20 icon) / 2 = 26px to center
-            // Open: pl-4 (16px) for better spacing
-            isOpen ? "pl-4" : "pl-3",
+            "cursor-pointer hover:bg-white/5 hover:text-titanium-100 text-titanium-400 px-3 pr-2",
           )}
           title="New Chat"
         >
@@ -60,10 +55,10 @@ export default function Sidebar({
             animate={{
               opacity: isOpen ? 1 : 0,
               width: isOpen ? "auto" : 0,
-              marginLeft: isOpen ? 12 : 0, // Animating gap (12px = gap-3) prevents jumpiness
+              marginLeft: isOpen ? 12 : 0, 
             }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="whitespace-nowrap font-medium text-24"
+            className="whitespace-nowrap font-medium text-[15px]"
           >
             New Chat
           </motion.span>
@@ -74,7 +69,7 @@ export default function Sidebar({
       <div className="flex-1 overflow-y-auto custom-scrollbar px-2 space-y-1">
         {isOpen && (
           <div className="animate-in fade-in duration-300">
-            <div className="text-24 font-bold text-titanium-400 uppercase pl-5 mb-2 mt-2 whitespace-nowrap">
+            <div className="text-xs font-bold text-titanium-500 uppercase pl-3 mb-2 mt-2 whitespace-nowrap tracking-wider">
               Recent
             </div>
             {history.map((chat) => (
@@ -82,10 +77,10 @@ export default function Sidebar({
                 key={chat.id}
                 onClick={() => onSelectChat(chat.id)}
                 className={clsx(
-                  "w-full flex items-center pl-5 pr-2 h-9 rounded-lg text-24 transition-colors text-left",
+                  "w-full flex items-center h-9 rounded-lg text-sm transition-colors text-left px-3",
                   currentChatId === chat.id
-                    ? "text-titanium-200 bg-titanium-900" 
-                    : "text-titanium-400 hover:bg-titanium-900 hover:text-titanium-200",
+                    ? "text-titanium-100 bg-white/5" 
+                    : "text-titanium-400 hover:text-titanium-200 hover:bg-white/5"
                 )}
                 title={chat.title}
               >
@@ -106,13 +101,12 @@ export default function Sidebar({
       </div>
 
       {/* 3. BOTTOM: Settings */}
-      <div className="p-2 border-t border-titanium-800/50 mt-auto flex flex-col">
+      <div className="p-2 border-t border-titanium-800/20 mt-auto flex flex-col">
         <button
           className={clsx(
             "h-10 flex items-center rounded-lg transition-all duration-300 w-full overflow-hidden",
-            "hover:bg-titanium-900 hover:text-titanium-200 text-titanium-400",
-            // Matching Padding Logic
-            isOpen ? "pl-4" : "pl-4",
+            "cursor-pointer hover:bg-white/5 hover:text-titanium-100 text-titanium-400",
+            isOpen ? "px-3" : "px-3"
           )}
         >
           <Settings size={24} className="shrink-0" />
@@ -124,7 +118,7 @@ export default function Sidebar({
               marginLeft: isOpen ? 12 : 0,
             }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="text-24 whitespace-nowrap"
+            className="text-[15px] whitespace-nowrap font-medium"
           >
             Settings
           </motion.span>

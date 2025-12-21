@@ -2,17 +2,20 @@ import asyncio
 import logging
 import os
 import re
+import io
 from typing import Any, Dict, List, Optional, cast
 
 import chromadb
 from crawl4ai import AsyncWebCrawler, CacheMode, CrawlerRunConfig
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 from groq import Groq
 from groq.types.chat import ChatCompletionMessageParam
 from pydantic import BaseModel
+from pypdf import PdfReader
+import PIL.Image
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -23,7 +26,7 @@ load_dotenv()
 
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 GROQ_KEYS = [
-    os.getenv("GROQ_API_KEY"),
+    os.getenv("GROQ_API_KEY1"),
     os.getenv("GROQ_API_KEY2"),
     os.getenv("GROQ_API_KEY3"),
 ]
@@ -154,6 +157,63 @@ async def root():
     return {"status": "RAG System Online", "docs_count": collection.count()}
 
 
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    filename = file.filename if file.filename else "unknown_file"
+    logger.info(f"Processing upload: {filename}")
+    
+    file_content = await file.read()
+    extracted_text = ""
+    
+    # Handle PDF
+    if filename.lower().endswith(".pdf"):
+        try:
+            pdf_reader = PdfReader(io.BytesIO(file_content))
+            for page in pdf_reader.pages:
+                text = page.extract_text()
+                if text:
+                    extracted_text += text + "\n"
+        except Exception as e:
+            logger.error(f"PDF extract failed: {e}")
+            return {"error": "Failed to parse PDF"}
+
+    # Handle Images (JPG, PNG, WEBP, etc)
+    elif filename.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.heic')):
+        try:
+            image = PIL.Image.open(io.BytesIO(file_content))
+            # Use Gemini Vision to describe the image/extract text
+            response = google_client.models.generate_content(
+                model="gemini-1.5-flash",
+                contents=["Extract all text from this image and provide a detailed technical description of what is visible.", image]
+            )
+            extracted_text = response.text
+        except Exception as e:
+            logger.error(f"Image analysis failed: {e}")
+            return {"error": "Failed to analyze image"}
+            
+    # Handle Text/Code files
+    else:
+        try:
+            extracted_text = file_content.decode("utf-8")
+        except:
+            extracted_text = str(file_content)
+
+    if not extracted_text.strip():
+        return {"error": "No text could be extracted"}
+
+    # Embed and Store
+    vec = get_embedding(extracted_text)
+    if vec:
+        collection.upsert(
+            documents=[extracted_text],
+            embeddings=[vec],
+            metadatas=[{"url": f"file://{filename}", "title": filename}],
+            ids=[f"file_{filename}_{os.urandom(4).hex()}"]
+        )
+        
+    return {"message": "File indexed successfully", "filename": filename}
+
+
 @app.post("/crawl")
 async def crawl_endpoint(req: CrawlRequest):
     count = await perform_crawl(req.url, req.max_depth)
@@ -167,7 +227,8 @@ async def chat_endpoint(req: ChatRequest):
     url_match = re.search(r"(https?://[^\s]+)", req.query)
     if url_match:
         found_url = url_match.group(0)
-        await perform_crawl(found_url, max_depth=0)
+        # Default to depth 3 if auto-detected in prompt as per frontend logic
+        await perform_crawl(found_url, max_depth=2) 
 
     query_vec = get_embedding(req.query)
     context_text = ""

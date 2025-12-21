@@ -1,41 +1,72 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { Paperclip, ArrowUp, Square, Plus, Link as LinkIcon, FileText, X, ChevronDown } from "lucide-react";
+import {
+  ArrowUp,
+  Square,
+  Link as LinkIcon,
+  FileText,
+  X,
+  File,
+  Paperclip,
+} from "lucide-react";
 import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
-import { FileNode } from "./FileTree";
 
 interface PromptBarProps {
-  onSendMessage?: (message: string) => void;
+  onSendMessage?: (message: string, file?: File | null) => void;
   onLinkModeToggle?: (isActive: boolean) => void;
   isLoading?: boolean;
-  isChatMode?: boolean; 
-  crawlDepth: number;
-  setCrawlDepth: (depth: number) => void;
+  isChatMode?: boolean;
 }
 
-export default function PromptBar({ 
-  onSendMessage, 
+export default function PromptBar({
+  onSendMessage,
   onLinkModeToggle,
-  isLoading, 
+  isLoading,
   isChatMode,
-  crawlDepth,
-  setCrawlDepth
 }: PromptBarProps) {
   const [input, setInput] = useState("");
   const [isLinkMode, setIsLinkMode] = useState(false);
   const [showPlusMenu, setShowPlusMenu] = useState(false);
-  const [showDepthMenu, setShowDepthMenu] = useState(false);
-   
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
+
+  const MIN_HEIGHT = 24;
+  const [textareaHeight, setTextareaHeight] = useState(MIN_HEIGHT);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (
+        document.activeElement instanceof HTMLInputElement ||
+        document.activeElement instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+      if (e.key.length === 1) {
+        textareaRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowPlusMenu(false);
-        setShowDepthMenu(false);
+      }
+      if (
+        textareaRef.current &&
+        !textareaRef.current.contains(event.target as Node) &&
+        !menuRef.current?.contains(event.target as Node)
+      ) {
+        setIsFocused(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -43,21 +74,38 @@ export default function PromptBar({
   }, []);
 
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
-    e.target.style.height = 'auto'; 
-    e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
+    const val = e.target.value;
+    setInput(val);
+
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    if (urlRegex.test(val) && !isLinkMode) {
+      setIsLinkMode(true);
+      if (onLinkModeToggle) onLinkModeToggle(true);
+    } else if (!urlRegex.test(val) && isLinkMode && !val.trim()) {
+      setIsLinkMode(false);
+      if (onLinkModeToggle) onLinkModeToggle(false);
+    }
+
+    e.target.style.height = "auto";
+    
+    let newHeight = e.target.scrollHeight;
+    
+    if (val === "") {
+        newHeight = MIN_HEIGHT;
+    }
+
+    setTextareaHeight(Math.min(newHeight, 150));
   };
 
   const handleSubmit = () => {
-    if (!input.trim() || isLoading) return;
-    
+    if ((!input.trim() && !attachedFile) || isLoading) return;
     if (onSendMessage) {
-      onSendMessage(input);
+      onSendMessage(input, attachedFile);
       setInput("");
-      if (isLinkMode) {
-        toggleLinkMode(false);
-      }
-      if (textareaRef.current) textareaRef.current.style.height = 'auto'; 
+      setAttachedFile(null);
+      if (isLinkMode) toggleLinkMode(false);
+      
+      setTextareaHeight(MIN_HEIGHT);
     }
   };
 
@@ -74,165 +122,213 @@ export default function PromptBar({
     if (onLinkModeToggle) onLinkModeToggle(active);
   };
 
-  const depthOptions = [
-    { level: 1, time: "10s - 1 min" },
-    { level: 2, time: "30s - 3 min" },
-    { level: 3, time: "2 - 5 min" },
-  ];
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setAttachedFile(e.target.files[0]);
+      setShowPlusMenu(false);
+    }
+  };
+
+  const removeFile = () => {
+    setAttachedFile(null);
+    if (docInputRef.current) docInputRef.current.value = "";
+  };
+
+  const containerSpring = {
+    type: "spring" as const,
+    stiffness: 350,
+    damping: 25,
+    mass: 1,
+  };
+
+  const itemsSpring = {
+    type: "spring" as const,
+    damping: 10,
+    mass: 0.75,
+    stiffness: 100,
+  };
+
+  const showSendButton = input.trim().length > 0 || attachedFile !== null || isLoading;
 
   return (
-    <div className={clsx("w-full mx-auto relative z-40 transition-all duration-300", isChatMode ? "max-w-4xl" : "max-w-3xl")}>
+    <motion.div
+      layout
+      initial={false}
+      animate={{
+        maxWidth: isChatMode ? "720px" : "460px",
+      }}
+      transition={containerSpring}
+      className="w-full mx-auto relative z-40"
+    >
+      <input
+        type="file"
+        ref={docInputRef}
+        className="hidden"
+        accept=".pdf,.doc,.docx,.txt"
+        onChange={handleFileSelect}
+      />
+
       <div className="relative group">
-        
-        {/* Glow Effect */}
-        <div className={clsx(
-          "absolute -inset-0.5 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl blur opacity-75 transition duration-1000",
-          "group-hover:opacity-100"
-        )}></div>
-        
-        <div className="relative flex flex-col bg-titanium-900/90 border border-titanium-700 rounded-2xl shadow-2xl backdrop-blur-sm overflow-visible transition-all duration-300">
-          
-          <div className="flex items-end p-3 gap-2">
-            
-            {/* PLUS BUTTON & MENU */}
-            <div className="relative shrink-0 pb-1" ref={menuRef}>
-               <button
-                 onClick={() => setShowPlusMenu(!showPlusMenu)}
-                 className="p-2 rounded-full bg-titanium-800 text-titanium-400 hover:text-white hover:bg-titanium-700 transition-all active:scale-95"
-               >
-                 <Plus size={20} className={clsx("transition-transform duration-200", showPlusMenu && "rotate-45")} />
-               </button>
+        <div
+          className={clsx(
+            "absolute -inset-0.5 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-[32px] blur opacity-0 transition duration-500",
+            isFocused ? "opacity-100" : "group-hover:opacity-50"
+          )}
+        ></div>
 
-               <AnimatePresence>
-                 {showPlusMenu && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: -8, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      // REMOVED border border-titanium-700
-                      className="absolute bottom-full left-0 mb-2 w-48 bg-titanium-800 rounded-xl shadow-xl overflow-hidden flex flex-col p-1 z-50"
+        <motion.div
+          layout
+          transition={{
+            type: "spring",
+            damping: 10,
+            mass: 0.75,
+            stiffness: 100,
+          }}
+          className={clsx(
+            "relative flex flex-col bg-titanium-900/90 rounded-[26px] shadow-2xl backdrop-blur-sm overflow-visible"
+          )}
+        >
+          <AnimatePresence>
+            {attachedFile && (
+              <motion.div
+                initial={{ opacity: 0, height: 0, y: 5 }}
+                animate={{ opacity: 1, height: "auto", y: 0 }}
+                exit={{ opacity: 0, height: 0, y: 5 }}
+                transition={itemsSpring}
+                className="px-3 pt-2 overflow-hidden"
+              >
+                <div className="inline-flex items-center gap-2 bg-titanium-800/50 border border-titanium-700 rounded-xl px-3 py-1.5 pr-2">
+                  <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
+                    <File size={14} className="text-blue-400" />
+                  </div>
+                  <div className="flex flex-col max-w-[150px]">
+                    <span className="text-[11px] text-titanium-100 truncate font-medium">
+                      {attachedFile.name}
+                    </span>
+                  </div>
+                  <button
+                    onClick={removeFile}
+                    className="p-0.5 hover:bg-titanium-700 rounded-full transition-colors text-titanium-400 hover:text-white ml-2"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="flex items-end p-2 gap-2">
+            <div className="relative shrink-0 pb-0.5 pl-0.5" ref={menuRef}>
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setShowPlusMenu(!showPlusMenu)}
+                className="p-2 cursor-pointer rounded-full text-titanium-400 hover:text-white hover:bg-titanium-800 transition-colors"
+              >
+                <Paperclip size={18} />
+              </motion.button>
+
+              <AnimatePresence>
+                {showPlusMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 15, scale: 0.8, filter: "blur(4px)" }}
+                    animate={{ opacity: 1, y: -8, scale: 1, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, y: 15, scale: 0.8, filter: "blur(4px)" }}
+                    transition={itemsSpring}
+                    className="absolute bottom-full left-0 w-44 mb-1 bg-[#171719] rounded-2xl shadow-xl border border-titanium-900 overflow-hidden flex flex-col p-1.5 z-50 origin-bottom-left"
+                  >
+                    <button
+                      onClick={() => {
+                        docInputRef.current?.click();
+                        setShowPlusMenu(false);
+                      }}
+                      className="cursor-pointer flex items-center gap-3 text-sm text-titanium-200 hover:bg-titanium-700/80 rounded-xl transition-colors text-left"
                     >
-                      <button 
-                         onClick={() => toggleLinkMode(true)}
-                         className="flex items-center gap-3 px-3 py-2.5 text-sm text-titanium-200 hover:bg-titanium-700 rounded-lg transition-colors text-left"
-                      >
-                         <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
-                             <LinkIcon size={16} />
-                         </div>
-                         <div className="flex flex-col">
-                             <span className="font-medium">Add Link</span>
-                             <span className="text-[10px] text-titanium-500">Train on website</span>
-                         </div>
-                      </button>
-                      
-                      <button 
-                         onClick={() => { setShowPlusMenu(false); alert("PDF support coming soon!"); }}
-                         className="flex items-center gap-3 px-3 py-2.5 text-sm text-titanium-200 hover:bg-titanium-700 rounded-lg transition-colors text-left"
-                      >
-                         <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center text-red-400">
-                             <FileText size={16} />
-                         </div>
-                         <div className="flex flex-col">
-                             <span className="font-medium">Add PDF</span>
-                             <span className="text-[10px] text-titanium-500">Train on document</span>
-                         </div>
-                      </button>
-                    </motion.div>
-                 )}
-               </AnimatePresence>
-            </div>
-
-            {/* INPUT AREA */}
-            <div className="flex-1 flex flex-col min-w-0">
-                {/* LINK MODE PILL */}
-                {isLinkMode && (
-                    <div className="flex items-center gap-2 mb-1 animate-in fade-in slide-in-from-left-2">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-600/20 border border-blue-500/30 text-blue-300 text-xs font-medium">
-                           <LinkIcon size={12} />
-                           <span>Link Mode</span>
-                           <button onClick={() => toggleLinkMode(false)} className="ml-1 hover:text-white">
-                               <X size={12} />
-                           </button>
-                        </span>
-                    </div>
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-titanium-100 shrink-0">
+                        <FileText size={18} />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-xs mb-0.5">Upload Doc</span>
+                        <span className="text-[9px] text-titanium-500">PDF, DOCX, TXT</span>
+                      </div>
+                    </button>
+                  </motion.div>
                 )}
-                
-                <textarea
-                    ref={textareaRef}
-                    value={input}
-                    onChange={handleInput}
-                    onKeyDown={handleKeyDown}
-                    placeholder={isLinkMode ? "Enter the doc link here..." : "What do you want to build?"}
-                    className="w-full bg-transparent text-titanium-100 placeholder-titanium-500 resize-none outline-none text-base py-2 min-h-[44px] max-h-40 font-sans scrollbar-hide"
-                    rows={1}
-                />
+              </AnimatePresence>
             </div>
 
-            {/* RIGHT SIDE ACTIONS */}
-            <div className="flex items-end gap-2 pb-1">
-                {/* DEPTH SELECTOR (Only in Link Mode) */}
+            <div className="flex-1 flex flex-col min-w-0 py-1.5">
+              <AnimatePresence>
                 {isLinkMode && (
-                    <div className="relative">
-                        <button
-                          onClick={() => setShowDepthMenu(!showDepthMenu)}
-                          // REMOVED border border-titanium-700/50
-                          className="flex items-center gap-1.5 h-9 px-3 rounded-lg bg-titanium-800/50 text-titanium-400 hover:text-blue-300 hover:bg-titanium-800 text-xs font-medium transition-all"
-                        >
-                           <span>Lvl {crawlDepth}</span>
-                           <ChevronDown size={14} className={clsx("transition-transform", showDepthMenu && "rotate-180")} />
-                        </button>
-
-                        <AnimatePresence>
-                            {showDepthMenu && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    animate={{ opacity: 1, y: -8, scale: 1 }}
-                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    // REMOVED border property
-                                    className="absolute bottom-full right-0 mb-2 w-48 bg-titanium-800 rounded-xl shadow-xl overflow-hidden z-50 py-1"
-                                >
-                                    <div className="px-3 py-2 text-[10px] uppercase font-bold text-titanium-500 tracking-wider">
-                                        Crawl Depth
-                                    </div>
-                                    {depthOptions.map((opt) => (
-                                        <button
-                                            key={opt.level}
-                                            onClick={() => { setCrawlDepth(opt.level); setShowDepthMenu(false); }}
-                                            className="w-full text-left px-4 py-2 hover:bg-titanium-700 flex justify-between items-center group"
-                                        >
-                                            <span className={clsx("text-sm", crawlDepth === opt.level ? "text-blue-400 font-bold" : "text-titanium-200")}>
-                                                Level {opt.level}
-                                            </span>
-                                            {/* Removed group-hover:text-titanium-400 to keep the color low */}
-                                            <span className="text-[10px] text-titanium-500">
-                                                ~{opt.time}
-                                            </span>
-                                        </button>
-                                    ))}
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={itemsSpring}
+                    className="flex items-center gap-2 mb-1 overflow-hidden"
+                  >
+                    <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-600/20 border border-blue-500/30 text-blue-300 text-[10px] font-medium tracking-wide">
+                      <LinkIcon size={10} />
+                      <span>Reading Link</span>
+                      <button
+                        onClick={() => toggleLinkMode(false)}
+                        className="ml-1 hover:text-white"
+                      >
+                        <X size={10} />
+                      </button>
+                    </span>
+                  </motion.div>
                 )}
+              </AnimatePresence>
 
-                {/* SEND BUTTON */}
-                <button 
-                  onClick={handleSubmit}
-                  disabled={!input.trim() && !isLoading}
-                  className={clsx(
-                    "h-9 w-9 flex items-center justify-center rounded-lg transition-all duration-200",
-                    input.trim() || isLoading 
-                      ? "bg-blue-600 text-white shadow-lg hover:bg-blue-500" 
-                      : "bg-titanium-800 text-titanium-500 cursor-not-allowed"
-                  )}
-                >
-                  {isLoading ? <Square size={16} className="fill-current animate-pulse" /> : <ArrowUp size={20} />}
-                </button>
+              <motion.textarea
+                ref={textareaRef}
+                value={input}
+                rows={1}
+                onFocus={() => setIsFocused(true)}
+                onChange={handleInput}
+                onKeyDown={handleKeyDown}
+                placeholder={isLinkMode ? "Paste URL..." : "Ask Docent..."}
+                animate={{ height: textareaHeight }}
+                transition={{
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 18,
+                  mass: 0.8
+                }}
+                className="w-full bg-transparent text-titanium-100 placeholder-titanium-500 resize-none outline-none text-[15px] leading-6 font-sans scrollbar-hide px-1 py-0"
+              />
             </div>
 
+            <div className="flex items-end pb-0.5 pr-0.5 min-w-9 min-h-9">
+              <AnimatePresence>
+                {showSendButton && (
+                    <motion.button
+                        layout
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        transition={itemsSpring}
+                        onClick={handleSubmit}
+                        disabled={!input.trim() && !attachedFile && !isLoading}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.9 }}
+                        className={clsx(
+                        "h-9 w-9 flex items-center justify-center rounded-full transition-colors duration-200",
+                        "bg-titanium-800 text-white shadow-lg shadow-blue-900/20"
+                        )}
+                    >
+                        {isLoading ? (
+                        <Square size={14} className="fill-current animate-pulse" />
+                        ) : (
+                        <ArrowUp size={18} strokeWidth={2} />
+                        )}
+                    </motion.button>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

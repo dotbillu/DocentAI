@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Rasa, Inter, JetBrains_Mono } from "next/font/google";
-import Navbar from "../components/layout/Navbar"; // 1. Restore Import
+import Navbar from "../components/layout/Navbar";
 import "./globals.css";
 import { Provider } from "jotai";
 
@@ -32,9 +32,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${rasa.variable} ${inter.variable} ${jetbrains.variable} font-sans bg-titanium-950 text-titanium-100 flex flex-col h-screen overflow-hidden`}>
+      <body className={`${rasa.variable} ${inter.variable} ${jetbrains.variable} font-sans antialiased text-titanium-100 flex flex-col h-screen overflow-hidden bg-[#0A0A0A]`}>
+      
+        <div className="fixed inset-0 -z-50 pointer-events-none">
+            <div className="absolute inset-0 bg-[#0A0A0A]"></div>
+            
+            <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[120%] h-[80vh] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-[#0A0A0A]/40 to-[#0A0A0A]/0 blur-3xl"></div>
+        </div>
+
         <Provider>
-          <Navbar />  {/* 2. Restore Component */}
+          <Navbar />
           {children}
         </Provider>
       </body>
