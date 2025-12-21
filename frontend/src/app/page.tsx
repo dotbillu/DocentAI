@@ -275,7 +275,7 @@ export default function Home() {
           )}
         </div>
 
-        <div className="shrink-0 w-full bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A] to-transparent p-4 pb-6 pt-10">
+        <div className="shrink-0 w-full bg-linear-to-t from-[#0A0A0A] via-[#0A0A0A] to-transparent p-4 pb-6 pt-10">
           <div className="w-full max-w-3xl mx-auto">
              <PromptBar
                onSendMessage={handleUserMessage}

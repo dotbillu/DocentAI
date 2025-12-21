@@ -18,6 +18,8 @@ interface PromptBarProps {
   onLinkModeToggle?: (isActive: boolean) => void;
   isLoading?: boolean;
   isChatMode?: boolean;
+  crawlDepth?: number;
+  setCrawlDepth?: any;
 }
 
 export default function PromptBar({
@@ -25,6 +27,8 @@ export default function PromptBar({
   onLinkModeToggle,
   isLoading,
   isChatMode,
+  crawlDepth,
+  setCrawlDepth,
 }: PromptBarProps) {
   const [input, setInput] = useState("");
   const [isLinkMode, setIsLinkMode] = useState(false);
