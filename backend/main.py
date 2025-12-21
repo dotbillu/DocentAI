@@ -163,9 +163,8 @@ async def upload_file(file: UploadFile = File(...)):
     logger.info(f"Processing upload: {filename}")
     
     file_content = await file.read()
-    extracted_text = ""
+    extracted_text: str = ""
     
-    # Handle PDF
     if filename.lower().endswith(".pdf"):
         try:
             pdf_reader = PdfReader(io.BytesIO(file_content))
@@ -177,31 +176,27 @@ async def upload_file(file: UploadFile = File(...)):
             logger.error(f"PDF extract failed: {e}")
             return {"error": "Failed to parse PDF"}
 
-    # Handle Images (JPG, PNG, WEBP, etc)
     elif filename.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.heic')):
         try:
             image = PIL.Image.open(io.BytesIO(file_content))
-            # Use Gemini Vision to describe the image/extract text
             response = google_client.models.generate_content(
                 model="gemini-1.5-flash",
                 contents=["Extract all text from this image and provide a detailed technical description of what is visible.", image]
             )
-            extracted_text = response.text
+            extracted_text = response.text if response.text else ""
         except Exception as e:
             logger.error(f"Image analysis failed: {e}")
             return {"error": "Failed to analyze image"}
             
-    # Handle Text/Code files
     else:
         try:
             extracted_text = file_content.decode("utf-8")
         except:
             extracted_text = str(file_content)
 
-    if not extracted_text.strip():
+    if not extracted_text or not extracted_text.strip():
         return {"error": "No text could be extracted"}
 
-    # Embed and Store
     vec = get_embedding(extracted_text)
     if vec:
         collection.upsert(
@@ -227,7 +222,6 @@ async def chat_endpoint(req: ChatRequest):
     url_match = re.search(r"(https?://[^\s]+)", req.query)
     if url_match:
         found_url = url_match.group(0)
-        # Default to depth 3 if auto-detected in prompt as per frontend logic
         await perform_crawl(found_url, max_depth=2) 
 
     query_vec = get_embedding(req.query)
