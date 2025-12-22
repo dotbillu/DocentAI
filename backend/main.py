@@ -29,6 +29,7 @@ GROQ_KEYS = [
     os.getenv("GROQ_API_KEY1"),
     os.getenv("GROQ_API_KEY2"),
     os.getenv("GROQ_API_KEY3"),
+    os.getenv("GROQ_API_KEY4"),
 ]
 GROQ_KEYS = [k for k in GROQ_KEYS if k]
 
