@@ -7,17 +7,17 @@ import { Provider } from "jotai";
 const rasa = Rasa({
   subsets: ["latin"],
   variable: "--font-rasa",
-  weight: ["300", "400", "500", "600", "700"]
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-inter"
+  variable: "--font-inter",
 });
 
 const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-jetbrains"
+  variable: "--font-jetbrains",
 });
 
 export const metadata: Metadata = {
@@ -32,12 +32,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${rasa.variable} ${inter.variable} ${jetbrains.variable} font-sans antialiased text-titanium-100 flex flex-col h-screen overflow-hidden bg-[#0A0A0A]`}>
-      
+      <body
+        className={`${rasa.variable} ${inter.variable} ${jetbrains.variable} font-sans antialiased text-titanium-100 flex flex-col h-screen overflow-hidden bg-gradient-to-br from-[#0f172a] via-[#020617] to-black`}
+      >
         <div className="fixed inset-0 -z-50 pointer-events-none">
-            <div className="absolute inset-0 bg-[#0A0A0A]"></div>
-            
-            <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[120%] h-[80vh] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-[#0A0A0A]/40 to-[#0A0A0A]/0 blur-3xl"></div>
+          <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[80%] h-[60vh] bg-blue-600/10 blur-[120px] rounded-full mix-blend-screen"></div>
         </div>
 
         <Provider>

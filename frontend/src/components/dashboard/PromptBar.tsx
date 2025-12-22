@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useLayoutEffect } from "react";
 import {
   ArrowUp,
   Square,
@@ -27,8 +27,6 @@ export default function PromptBar({
   onLinkModeToggle,
   isLoading,
   isChatMode,
-  crawlDepth,
-  setCrawlDepth,
 }: PromptBarProps) {
   const [input, setInput] = useState("");
   const [isLinkMode, setIsLinkMode] = useState(false);
@@ -36,13 +34,11 @@ export default function PromptBar({
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [isFocused, setIsFocused] = useState(false);
 
-  const MIN_HEIGHT = 24;
-  const [textareaHeight, setTextareaHeight] = useState(MIN_HEIGHT);
-
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
 
+  // Focus shortcut
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -60,6 +56,7 @@ export default function PromptBar({
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
   }, []);
 
+  // Click outside to close menus/blur
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -77,28 +74,29 @@ export default function PromptBar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Jitter-free auto-resize using DOM layout directly
+  useLayoutEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "24px"; // Reset to min-height
+      const scrollHeight = textareaRef.current.scrollHeight;
+      textareaRef.current.style.height = `${Math.min(scrollHeight, 200)}px`;
+    }
+  }, [input]);
+
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setInput(val);
 
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    if (urlRegex.test(val) && !isLinkMode) {
+    const hasLink = urlRegex.test(val);
+
+    if (hasLink && !isLinkMode) {
       setIsLinkMode(true);
-      if (onLinkModeToggle) onLinkModeToggle(true);
-    } else if (!urlRegex.test(val) && isLinkMode && !val.trim()) {
+      onLinkModeToggle?.(true);
+    } else if (!hasLink && isLinkMode && !val.trim()) {
       setIsLinkMode(false);
-      if (onLinkModeToggle) onLinkModeToggle(false);
+      onLinkModeToggle?.(false);
     }
-
-    e.target.style.height = "auto";
-    
-    let newHeight = e.target.scrollHeight;
-    
-    if (val === "") {
-        newHeight = MIN_HEIGHT;
-    }
-
-    setTextareaHeight(Math.min(newHeight, 150));
   };
 
   const handleSubmit = () => {
@@ -108,8 +106,6 @@ export default function PromptBar({
       setInput("");
       setAttachedFile(null);
       if (isLinkMode) toggleLinkMode(false);
-      
-      setTextareaHeight(MIN_HEIGHT);
     }
   };
 
@@ -123,7 +119,7 @@ export default function PromptBar({
   const toggleLinkMode = (active: boolean) => {
     setIsLinkMode(active);
     setShowPlusMenu(false);
-    if (onLinkModeToggle) onLinkModeToggle(active);
+    onLinkModeToggle?.(active);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,30 +134,21 @@ export default function PromptBar({
     if (docInputRef.current) docInputRef.current.value = "";
   };
 
-  const containerSpring = {
-    type: "spring" as const,
-    stiffness: 350,
-    damping: 25,
-    mass: 1,
-  };
+const smoothTransition = {
+  duration: 0.5,
+  ease: "easeInOut",
+} as const; 
 
-  const itemsSpring = {
-    type: "spring" as const,
-    damping: 10,
-    mass: 0.75,
-    stiffness: 100,
-  };
-
-  const showSendButton = input.trim().length > 0 || attachedFile !== null || isLoading;
+  const showSendButton =
+    input.trim().length > 0 || attachedFile !== null || isLoading;
 
   return (
     <motion.div
-      layout
       initial={false}
       animate={{
         maxWidth: isChatMode ? "720px" : "460px",
       }}
-      transition={containerSpring}
+      transition={smoothTransition}
       className="w-full mx-auto relative z-40"
     >
       <input
@@ -175,30 +162,23 @@ export default function PromptBar({
       <div className="relative group">
         <div
           className={clsx(
-            "absolute -inset-0.5 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-[32px] blur opacity-0 transition duration-500",
-            isFocused ? "opacity-100" : "group-hover:opacity-50"
+            "absolute -inset-0.5 bg-linear-to-r from-blue-500/20 to-purple-500/20 rounded-4xl blur opacity-0 transition duration-300",
+            isFocused ? "opacity-100" : "group-hover:opacity-50",
           )}
-        ></div>
+        />
 
-        <motion.div
-          layout
-          transition={{
-            type: "spring",
-            damping: 10,
-            mass: 0.75,
-            stiffness: 100,
-          }}
+        <div
           className={clsx(
-            "relative flex flex-col bg-titanium-900/90 rounded-[26px] shadow-2xl backdrop-blur-sm overflow-visible"
+            "relative flex flex-col bg-titanium-900/90 rounded-[26px] shadow-2xl backdrop-blur-sm overflow-visible",
           )}
         >
           <AnimatePresence>
             {attachedFile && (
               <motion.div
-                initial={{ opacity: 0, height: 0, y: 5 }}
-                animate={{ opacity: 1, height: "auto", y: 0 }}
-                exit={{ opacity: 0, height: 0, y: 5 }}
-                transition={itemsSpring}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={smoothTransition}
                 className="px-3 pt-2 overflow-hidden"
               >
                 <div className="inline-flex items-center gap-2 bg-titanium-800/50 border border-titanium-700 rounded-xl px-3 py-1.5 pr-2">
@@ -223,21 +203,20 @@ export default function PromptBar({
 
           <div className="flex items-end p-2 gap-2">
             <div className="relative shrink-0 pb-0.5 pl-0.5" ref={menuRef}>
-              <motion.button
-                whileTap={{ scale: 0.9 }}
+              <button
                 onClick={() => setShowPlusMenu(!showPlusMenu)}
                 className="p-2 cursor-pointer rounded-full text-titanium-400 hover:text-white hover:bg-titanium-800 transition-colors"
               >
                 <Paperclip size={18} />
-              </motion.button>
+              </button>
 
               <AnimatePresence>
                 {showPlusMenu && (
                   <motion.div
-                    initial={{ opacity: 0, y: 15, scale: 0.8, filter: "blur(4px)" }}
-                    animate={{ opacity: 1, y: -8, scale: 1, filter: "blur(0px)" }}
-                    exit={{ opacity: 0, y: 15, scale: 0.8, filter: "blur(4px)" }}
-                    transition={itemsSpring}
+                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: -8 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
                     className="absolute bottom-full left-0 w-44 mb-1 bg-[#171719] rounded-2xl shadow-xl border border-titanium-900 overflow-hidden flex flex-col p-1.5 z-50 origin-bottom-left"
                   >
                     <button
@@ -245,14 +224,18 @@ export default function PromptBar({
                         docInputRef.current?.click();
                         setShowPlusMenu(false);
                       }}
-                      className="cursor-pointer flex items-center gap-3 text-sm text-titanium-200 hover:bg-titanium-700/80 rounded-xl transition-colors text-left"
+                      className="cursor-pointer flex items-center gap-3 text-sm text-titanium-200 hover:bg-titanium-700/80 rounded-xl transition-colors text-left p-2"
                     >
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-titanium-100 shrink-0">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-titanium-100 shrink-0 bg-titanium-800">
                         <FileText size={18} />
                       </div>
                       <div className="flex flex-col">
-                        <span className="font-semibold text-xs mb-0.5">Upload Doc</span>
-                        <span className="text-[9px] text-titanium-500">PDF, DOCX, TXT</span>
+                        <span className="font-semibold text-xs mb-0.5">
+                          Upload Doc
+                        </span>
+                        <span className="text-[9px] text-titanium-500">
+                          PDF, DOCX, TXT
+                        </span>
                       </div>
                     </button>
                   </motion.div>
@@ -267,7 +250,7 @@ export default function PromptBar({
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    transition={itemsSpring}
+                    transition={smoothTransition}
                     className="flex items-center gap-2 mb-1 overflow-hidden"
                   >
                     <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-600/20 border border-blue-500/30 text-blue-300 text-[10px] font-medium tracking-wide">
@@ -284,7 +267,7 @@ export default function PromptBar({
                 )}
               </AnimatePresence>
 
-              <motion.textarea
+              <textarea
                 ref={textareaRef}
                 value={input}
                 rows={1}
@@ -292,46 +275,40 @@ export default function PromptBar({
                 onChange={handleInput}
                 onKeyDown={handleKeyDown}
                 placeholder={isLinkMode ? "Paste URL..." : "Ask Docent..."}
-                animate={{ height: textareaHeight }}
-                transition={{
-                  type: "spring",
-                  stiffness: 400,
-                  damping: 18,
-                  mass: 0.8
-                }}
                 className="w-full bg-transparent text-titanium-100 placeholder-titanium-500 resize-none outline-none text-[15px] leading-6 font-sans scrollbar-hide px-1 py-0"
+                style={{ height: "24px", minHeight: "24px" }}
               />
             </div>
 
             <div className="flex items-end pb-0.5 pr-0.5 min-w-9 min-h-9">
               <AnimatePresence>
                 {showSendButton && (
-                    <motion.button
-                        layout
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0, opacity: 0 }}
-                        transition={itemsSpring}
-                        onClick={handleSubmit}
-                        disabled={!input.trim() && !attachedFile && !isLoading}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.9 }}
-                        className={clsx(
-                        "h-9 w-9 flex items-center justify-center rounded-full transition-colors duration-200",
-                        "bg-titanium-800 text-white shadow-lg shadow-blue-900/20"
-                        )}
-                    >
-                        {isLoading ? (
-                        <Square size={14} className="fill-current animate-pulse" />
-                        ) : (
-                        <ArrowUp size={18} strokeWidth={2} />
-                        )}
-                    </motion.button>
+                  <motion.button
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.8, opacity: 0 }}
+                    transition={smoothTransition}
+                    onClick={handleSubmit}
+                    disabled={!input.trim() && !attachedFile && !isLoading}
+                    className={clsx(
+                      "h-9 w-9 flex items-center justify-center rounded-full transition-all duration-200",
+                      "bg-titanium-800 text-white shadow-lg hover:bg-titanium-700 active:scale-95",
+                    )}
+                  >
+                    {isLoading ? (
+                      <Square
+                        size={14}
+                        className="fill-current animate-pulse"
+                      />
+                    ) : (
+                      <ArrowUp size={18} strokeWidth={2} />
+                    )}
+                  </motion.button>
                 )}
               </AnimatePresence>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </motion.div>
   );

@@ -1,21 +1,21 @@
 import asyncio
+import io
 import logging
 import os
 import re
-import io
 from typing import Any, Dict, List, Optional, cast
 
 import chromadb
+import PIL.Image
 from crawl4ai import AsyncWebCrawler, CacheMode, CrawlerRunConfig
 from dotenv import load_dotenv
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 from groq import Groq
 from groq.types.chat import ChatCompletionMessageParam
 from pydantic import BaseModel
 from pypdf import PdfReader
-import PIL.Image
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -60,6 +60,7 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     query: str
     history: List[Message] = []
+    file_context: Optional[str] = None  # <--- ADDED THIS FIELD
 
 
 class CrawlRequest(BaseModel):
@@ -161,10 +162,10 @@ async def root():
 async def upload_file(file: UploadFile = File(...)):
     filename = file.filename if file.filename else "unknown_file"
     logger.info(f"Processing upload: {filename}")
-    
+
     file_content = await file.read()
-    extracted_text: str = ""
-    
+    extracted_text = ""
+
     if filename.lower().endswith(".pdf"):
         try:
             pdf_reader = PdfReader(io.BytesIO(file_content))
@@ -176,25 +177,28 @@ async def upload_file(file: UploadFile = File(...)):
             logger.error(f"PDF extract failed: {e}")
             return {"error": "Failed to parse PDF"}
 
-    elif filename.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.heic')):
+    elif filename.lower().endswith((".png", ".jpg", ".jpeg", ".webp", ".heic")):
         try:
             image = PIL.Image.open(io.BytesIO(file_content))
             response = google_client.models.generate_content(
                 model="gemini-1.5-flash",
-                contents=["Extract all text from this image and provide a detailed technical description of what is visible.", image]
+                contents=[
+                    "Extract all text from this image and provide a detailed technical description of what is visible.",
+                    image,
+                ],
             )
-            extracted_text = response.text if response.text else ""
+            extracted_text = response.text
         except Exception as e:
             logger.error(f"Image analysis failed: {e}")
             return {"error": "Failed to analyze image"}
-            
+
     else:
         try:
             extracted_text = file_content.decode("utf-8")
         except:
             extracted_text = str(file_content)
 
-    if not extracted_text or not extracted_text.strip():
+    if not extracted_text.strip():
         return {"error": "No text could be extracted"}
 
     vec = get_embedding(extracted_text)
@@ -203,10 +207,14 @@ async def upload_file(file: UploadFile = File(...)):
             documents=[extracted_text],
             embeddings=[vec],
             metadatas=[{"url": f"file://{filename}", "title": filename}],
-            ids=[f"file_{filename}_{os.urandom(4).hex()}"]
+            ids=[f"file_{filename}_{os.urandom(4).hex()}"],
         )
-        
-    return {"message": "File indexed successfully", "filename": filename}
+
+    return {
+        "message": "File indexed successfully",
+        "filename": filename,
+        "extracted_text": extracted_text,
+    }
 
 
 @app.post("/crawl")
@@ -222,12 +230,18 @@ async def chat_endpoint(req: ChatRequest):
     url_match = re.search(r"(https?://[^\s]+)", req.query)
     if url_match:
         found_url = url_match.group(0)
-        await perform_crawl(found_url, max_depth=2) 
+        await perform_crawl(found_url, max_depth=2)
 
     query_vec = get_embedding(req.query)
     context_text = ""
     sources = []
 
+    # 1. IMMEDIATE CONTEXT: If a file was just uploaded, prioritize it!
+    if req.file_context:
+        context_text += f"\n=== CURRENTLY UPLOADED FILE CONTENT ===\n{req.file_context}\n=======================================\n"
+        sources.append("Uploaded File")
+
+    # 2. RETRIEVED CONTEXT: Get other relevant knowledge
     if query_vec:
         results = collection.query(query_embeddings=[query_vec], n_results=5)
 

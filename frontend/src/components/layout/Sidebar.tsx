@@ -37,14 +37,14 @@ export default function Sidebar({
       initial={{ width: 260 }}
       animate={{ width: isOpen ? 260 : 72 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="h-full bg-[#0A0A0A]/40 backdrop-blur-xl border-r border-titanium-800/20 flex flex-col shrink-0 relative z-40 overflow-hidden"
+      className="h-full bg-gradient-to-b from-[#0f172a]/50 via-[#0A0A0A]/50 to-black/50 backdrop-blur-xl border-r border-white/10 flex flex-col shrink-0 relative z-40 overflow-hidden"
     >
       <div className="p-2 flex flex-col gap-2">
         <button
           onClick={onNewChat}
           className={clsx(
             "h-10 flex items-center rounded-lg transition-all duration-300 w-full overflow-hidden",
-            "cursor-pointer hover:bg-white/5 hover:text-titanium-100 text-titanium-400 px-3 pr-2",
+            "cursor-pointer hover:bg-white/10 hover:text-titanium-100 text-titanium-400 px-3 pr-2",
           )}
           title="New Chat"
         >
@@ -55,7 +55,7 @@ export default function Sidebar({
             animate={{
               opacity: isOpen ? 1 : 0,
               width: isOpen ? "auto" : 0,
-              marginLeft: isOpen ? 12 : 0, 
+              marginLeft: isOpen ? 12 : 0,
             }}
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="whitespace-nowrap font-medium text-[15px]"
@@ -79,8 +79,8 @@ export default function Sidebar({
                 className={clsx(
                   "w-full flex items-center h-9 rounded-lg text-sm transition-colors text-left px-3",
                   currentChatId === chat.id
-                    ? "text-titanium-100 bg-white/5" 
-                    : "text-titanium-400 hover:text-titanium-200 hover:bg-white/5"
+                    ? "text-titanium-100 bg-white/10"
+                    : "text-titanium-400 hover:text-titanium-200 hover:bg-white/5",
                 )}
                 title={chat.title}
               >
@@ -101,12 +101,12 @@ export default function Sidebar({
       </div>
 
       {/* 3. BOTTOM: Settings */}
-      <div className="p-2 border-t border-titanium-800/20 mt-auto flex flex-col">
+      <div className="p-2 border-t border-white/10 mt-auto flex flex-col">
         <button
           className={clsx(
             "h-10 flex items-center rounded-lg transition-all duration-300 w-full overflow-hidden",
-            "cursor-pointer hover:bg-white/5 hover:text-titanium-100 text-titanium-400",
-            isOpen ? "px-3" : "px-3"
+            "cursor-pointer hover:bg-white/10 hover:text-titanium-100 text-titanium-400",
+            isOpen ? "px-3" : "px-3",
           )}
         >
           <Settings size={24} className="shrink-0" />
