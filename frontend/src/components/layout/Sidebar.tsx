@@ -37,7 +37,7 @@ export default function Sidebar({
       initial={{ width: 260 }}
       animate={{ width: isOpen ? 260 : 72 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="h-full bg-gradient-to-b from-[#0f172a]/50 via-[#0A0A0A]/50 to-black/50 backdrop-blur-xl border-r border-white/10 flex flex-col shrink-0 relative z-40 overflow-hidden"
+      className="h-full bg-linear-to-b from-[#0f172a]/50 via-[#0A0A0A]/50 to-black/50 backdrop-blur-xl border-r border-white/10 flex flex-col shrink-0 relative z-40 overflow-hidden"
     >
       <div className="p-2 flex flex-col gap-2">
         <button

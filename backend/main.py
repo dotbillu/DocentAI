@@ -3,9 +3,13 @@ import io
 import logging
 import os
 import re
+import time
 from typing import Any, Dict, List, Optional, cast
 
-import chromadb
+# REMOVED: import chromadb
+# ADDED: Pinecone imports
+from pinecone import Pinecone, ServerlessSpec
+
 import PIL.Image
 from crawl4ai import AsyncWebCrawler, CacheMode, CrawlerRunConfig
 from dotenv import load_dotenv
@@ -24,7 +28,11 @@ logger = logging.getLogger("RAG_Worker")
 
 load_dotenv()
 
+# --- CONFIGURATION ---
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY") # NEW
+PINECONE_INDEX_NAME = "docent-ai-index"          # NEW
+
 GROQ_KEYS = [
     os.getenv("GROQ_API_KEY1"),
     os.getenv("GROQ_API_KEY2"),
@@ -33,11 +41,32 @@ GROQ_KEYS = [
 ]
 GROQ_KEYS = [k for k in GROQ_KEYS if k]
 
-if not GEMINI_KEY or not GROQ_KEYS:
-    raise ValueError("Missing API Keys in .env")
+if not GEMINI_KEY or not GROQ_KEYS or not PINECONE_API_KEY:
+    raise ValueError("Missing API Keys in .env (Check GEMINI, GROQ, and PINECONE)")
 
-chroma_client = chromadb.PersistentClient(path="./chroma_db")
-collection = chroma_client.get_or_create_collection(name="docent_knowledge")
+# --- PINECONE SETUP ---
+pc = Pinecone(api_key=PINECONE_API_KEY)
+
+# Check if index exists, if not create it (Serverless - AWS us-east-1 is standard)
+existing_indexes = [index_info["name"] for index_info in pc.list_indexes()]
+
+if PINECONE_INDEX_NAME not in existing_indexes:
+    logger.info(f"Creating new Pinecone index: {PINECONE_INDEX_NAME}")
+    pc.create_index(
+        name=PINECONE_INDEX_NAME,
+        dimension=768, # IMPORTANT: Gemini text-embedding-004 output dimension
+        metric="cosine",
+        spec=ServerlessSpec(
+            cloud="aws",
+            region="us-east-1"
+        )
+    )
+    # Wait a moment for the index to be ready
+    while not pc.describe_index(PINECONE_INDEX_NAME).status["ready"]:
+        time.sleep(1)
+
+# Connect to the index
+index = pc.Index(PINECONE_INDEX_NAME)
 
 google_client = genai.Client(api_key=GEMINI_KEY)
 
@@ -52,26 +81,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+# --- MODELS ---
 class Message(BaseModel):
     role: str
     content: str
 
-
 class ChatRequest(BaseModel):
     query: str
     history: List[Message] = []
-    file_context: Optional[str] = None  # <--- ADDED THIS FIELD
-
+    file_context: Optional[str] = None
 
 class CrawlRequest(BaseModel):
     url: str
     max_depth: int = 2
 
-
+# --- HELPERS ---
 def get_groq_client(index: int) -> Groq:
     return Groq(api_key=GROQ_KEYS[index])
-
 
 def get_embedding(text: str) -> List[float]:
     try:
@@ -85,7 +111,7 @@ def get_embedding(text: str) -> List[float]:
         logger.error(f"Embedding failed: {e}")
         return []
 
-
+# --- CORE LOGIC ---
 async def perform_crawl(url: str, max_depth: int = 1):
     logger.info(f"Auto-Crawling: {url} (Depth: {max_depth})")
 
@@ -95,10 +121,7 @@ async def perform_crawl(url: str, max_depth: int = 1):
         excluded_tags=["nav", "footer", "aside"],
     )
 
-    documents = []
-    embeddings = []
-    metadatas = []
-    ids = []
+    vectors_to_upsert = []
     processed_count = 0
 
     async with AsyncWebCrawler() as crawler:
@@ -130,9 +153,6 @@ async def perform_crawl(url: str, max_depth: int = 1):
             if not vec:
                 continue
 
-            documents.append(content)
-            embeddings.append(vec)
-
             page_title = "No Title"
             if hasattr(page, "metadata") and page.metadata:
                 page_title = page.metadata.get("title", "No Title")
@@ -140,23 +160,34 @@ async def perform_crawl(url: str, max_depth: int = 1):
             page_url = "Unknown"
             if hasattr(page, "url"):
                 page_url = page.url
-
-            metadatas.append({"url": page_url, "title": page_title})
-            ids.append(page_url)
+            
+            # Pinecone requires ASCII IDs, so we use the URL or a hash
+            # We store the actual TEXT content in the metadata so we can retrieve it later
+            safe_id = re.sub(r'[^a-zA-Z0-9]', '_', page_url)[:512]
+            
+            vectors_to_upsert.append({
+                "id": safe_id,
+                "values": vec,
+                "metadata": {
+                    "url": page_url,
+                    "title": page_title,
+                    "text": content 
+                }
+            })
             processed_count += 1
 
-    if documents:
-        collection.upsert(
-            documents=documents, embeddings=embeddings, metadatas=metadatas, ids=ids
-        )
-        logger.info(f"Indexed {len(documents)} pages.")
+    if vectors_to_upsert:
+        # Pinecone Upsert
+        index.upsert(vectors=vectors_to_upsert)
+        logger.info(f"Indexed {len(vectors_to_upsert)} pages to Cloud.")
 
     return processed_count
 
 
 @app.get("/")
 async def root():
-    return {"status": "RAG System Online", "docs_count": collection.count()}
+    stats = index.describe_index_stats()
+    return {"status": "RAG System Online (Pinecone Cloud)", "stats": stats}
 
 
 @app.post("/upload")
@@ -204,15 +235,20 @@ async def upload_file(file: UploadFile = File(...)):
 
     vec = get_embedding(extracted_text)
     if vec:
-        collection.upsert(
-            documents=[extracted_text],
-            embeddings=[vec],
-            metadatas=[{"url": f"file://{filename}", "title": filename}],
-            ids=[f"file_{filename}_{os.urandom(4).hex()}"],
-        )
+        # Upsert to Pinecone
+        safe_id = f"file_{re.sub(r'[^a-zA-Z0-9]', '_', filename)}_{int(time.time())}"
+        index.upsert(vectors=[{
+            "id": safe_id,
+            "values": vec,
+            "metadata": {
+                "url": f"file://{filename}",
+                "title": filename,
+                "text": extracted_text[:8000] # Store text in metadata
+            }
+        }])
 
     return {
-        "message": "File indexed successfully",
+        "message": "File indexed successfully to Pinecone",
         "filename": filename,
         "extracted_text": extracted_text,
     }
@@ -221,7 +257,7 @@ async def upload_file(file: UploadFile = File(...)):
 @app.post("/crawl")
 async def crawl_endpoint(req: CrawlRequest):
     count = await perform_crawl(req.url, req.max_depth)
-    return {"message": f"Crawled {count} pages.", "database_count": collection.count()}
+    return {"message": f"Crawled {count} pages."}
 
 
 @app.post("/chat")
@@ -237,20 +273,27 @@ async def chat_endpoint(req: ChatRequest):
     context_text = ""
     sources = []
 
-    # 1. IMMEDIATE CONTEXT: If a file was just uploaded, prioritize it!
+    # 1. IMMEDIATE CONTEXT
     if req.file_context:
         context_text += f"\n=== CURRENTLY UPLOADED FILE CONTENT ===\n{req.file_context}\n=======================================\n"
         sources.append("Uploaded File")
 
-    # 2. RETRIEVED CONTEXT: Get other relevant knowledge
+   
     if query_vec:
-        results = collection.query(query_embeddings=[query_vec], n_results=5)
+        # Query Pinecone
+        results = index.query(
+            vector=query_vec,
+            top_k=5,
+            include_metadata=True 
+        )
 
-        if results and results["documents"] and results["documents"][0]:
-            for i, doc in enumerate(results["documents"][0]):
-                meta = results["metadatas"][0][i] if results["metadatas"] else {}
+        for match in results['matches']:
+            if match and match['metadata']:
+                meta = match['metadata']
                 url_source = str(meta.get("url", "Unknown"))
-                context_text += f"\nSOURCE: {url_source}\nCONTENT:\n{doc}\n---\n"
+                # Retrieve the text we stored earlier
+                doc_content = meta.get("text", "") 
+                context_text += f"\nSOURCE: {url_source}\nCONTENT:\n{doc_content}\n---\n"
                 sources.append(url_source)
 
     messages: List[ChatCompletionMessageParam] = [
@@ -296,5 +339,4 @@ async def chat_endpoint(req: ChatRequest):
 
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=8000)

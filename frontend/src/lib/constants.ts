@@ -1,18 +1,17 @@
-import { Book, FileText, Image as ImageIcon, Activity, Disc, Youtube, Twitter, Linkedin } from "lucide-react";
+import { Book, FileText, Library, Disc, Youtube, Twitter, Linkedin } from "lucide-react";
 
 export const NAV_LINKS = [
   { label: "Community", href: "/community" },
-  { label: "Enterprise", href: "/enterprise" },
+  { label: "Help", href: "/help" }, // Renamed from Enterprise
   { label: "Careers", href: "/careers" },
-  { label: "Pricing", href: "/pricing" },
 ];
 
 export const RESOURCES_MENU = {
   resources: [
-    { title: "Docs & Help Center", href: "/docs", icon: Book },
+    { title: "Documentation", href: "/docs", icon: Book },
     { title: "Blog", href: "/blog", icon: FileText },
-    { title: "Bolt Gallery", href: "/gallery", icon: ImageIcon },
-    { title: "Status", href: "/status", icon: Activity },
+    { title: "Library", href: "/gallery", icon: Library },
+    // Status removed as requested
   ],
   community: [
     { title: "Discord", href: "https://discord.com", icon: Disc },
@@ -25,14 +24,14 @@ export const RESOURCES_MENU = {
 export const FOOTER_LINKS = [
   {
     title: "Product",
-    links: ["Features", "Pricing", "Enterprise", "Changelog", "Docs"]
+    links: ["Features", "Changelog", "Docs"]
   },
   {
     title: "Company",
-    links: ["About Us", "Careers", "Blog", "Contact", "Partners"]
+    links: ["About Us", "Careers", "Blog", "Contact"]
   },
   {
-    title: "Legal",
-    links: ["Privacy Policy", "Terms of Service", "Cookie Policy", "Security"]
+    title: "Support", 
+    links: ["Help Center", "Privacy Policy", "Terms of Service"]
   }
 ];

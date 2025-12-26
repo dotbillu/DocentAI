@@ -8,7 +8,7 @@ import MarkdownRenderer from "../components/dashboard/MarkdownRenderer";
 import { Sparkles, Globe, Copy, Check } from "lucide-react";
 import clsx from "clsx";
 import { useAtom } from "jotai";
-import { chatHistoryAtom, crawlDepthAtom, isLinkModeAtom } from "../atom";
+import { chatHistoryAtom, crawlDepthAtom, isLinkModeAtom, aiSettingsAtom } from "../atom";
 import { db } from "../lib/db";
 import { v4 as uuidv4 } from "uuid";
 
@@ -24,6 +24,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [crawlDepth, setCrawlDepth] = useAtom(crawlDepthAtom);
   const [isLinkMode, setIsLinkMode] = useAtom(isLinkModeAtom);
+  const [settings] = useAtom(aiSettingsAtom); // <--- IMPORT SETTINGS
+  
   const [trainingLogs, setTrainingLogs] = useState<string[]>([]);
   const [currentStatus, setCurrentStatus] = useState("Thinking...");
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -141,6 +143,19 @@ export default function Home() {
     let simulationInterval: NodeJS.Timeout | null = null;
     let extractedContext = "";
 
+    // --- APPLY PERSONALIZATION SETTINGS ---
+    let systemDirective = "";
+    if (settings.verbosity === "concise") {
+      systemDirective += "You are in CONCISE mode. Give code immediately. No conversational filler. ";
+    } else if (settings.verbosity === "detailed") {
+      systemDirective += "You are in DETAILED mode. Explain concepts thoroughly with examples. ";
+    }
+
+    if (settings.strictMode) {
+      systemDirective += "CRITICAL: ALL CODE MUST BE STRICTLY TYPED TYPESCRIPT. NO 'ANY' TYPES ALLOWED. ";
+    }
+    // --------------------------------------
+
     try {
       if (file) {
         extractedContext = await uploadFile(file);
@@ -176,7 +191,8 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          query: text,
+          // Inject system directive into the query
+          query: `[SYSTEM_INSTRUCTION: ${systemDirective}] User Query: ${text}`,
           history,
           file_context: extractedContext,
         }),
@@ -296,7 +312,7 @@ export default function Home() {
                                 className="flex items-center gap-1 text-[10px] bg-zinc-800/50 border border-zinc-700/50 px-2 py-1 rounded-md text-zinc-400 hover:text-blue-400 transition-colors"
                               >
                                 <Globe size={10} />
-                                <span className="truncate max-w-[150px]">
+                                <span className="truncate max-w-37.5">
                                   {src.startsWith("http")
                                     ? src.replace("https://", "").split("/")[0]
                                     : src}
@@ -332,7 +348,7 @@ export default function Home() {
           )}
         </div>
 
-        <div className="shrink-0 w-full bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A] to-transparent p-4 pb-6 pt-10">
+        <div className="shrink-0 w-full bg-linear-to-t from-[#0A0A0A] via-[#0A0A0A] to-transparent p-4 pb-6 pt-10">
           <div className="w-full max-w-3xl mx-auto">
             <PromptBar
               onSendMessage={handleUserMessage}
