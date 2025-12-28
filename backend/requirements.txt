@@ -7,4 +7,5 @@ groq
 numpy
 pypdf
 crawl4ai
-chromadb
+pinecone
+Pillow
