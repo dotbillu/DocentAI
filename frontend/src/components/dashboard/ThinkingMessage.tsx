@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Sparkles, ChevronDown, ChevronRight, AlertCircle, CheckCircle2, Terminal } from "lucide-react";
+import { Sparkles, ChevronDown, ChevronRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -20,7 +20,7 @@ export default function ThinkingMessage({ status, logs }: ThinkingMessageProps) 
 
   return (
     <div className="flex gap-4 mb-8 animate-in fade-in slide-in-from-bottom-2 w-full max-w-3xl">
-      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-900/20 animate-pulse">
+      <div className="w-8 h-8 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-900/20 animate-pulse">
         <Sparkles size={16} className="text-white" />
       </div>
 

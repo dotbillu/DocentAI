@@ -19,7 +19,7 @@ sleep 2
 echo "Starting frontend setup"
 (
   cd frontend || exit 1
-  npm install
+  pnpm install
 ) &
 
 wait

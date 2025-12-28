@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { cn } from "../../lib/utils";
 import { Loader2 } from "lucide-react";
@@ -19,7 +21,10 @@ export default function Button({
 }: ButtonProps) {
   
   const variants = {
-    primary: "bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)] border border-transparent",
+    // Primary uses the dynamic CSS variable set by ThemeManager
+    primary: "bg-[var(--accent-color)] hover:brightness-110 text-white shadow-[0_0_15px_rgba(0,0,0,0.3)] border border-transparent",
+    
+    // Titanium Theme Semantic Classes
     secondary: "bg-titanium-100 text-titanium-950 hover:bg-white",
     outline: "bg-transparent border border-titanium-700 text-titanium-100 hover:border-titanium-400 hover:text-white",
     ghost: "bg-transparent text-titanium-400 hover:text-titanium-100 hover:bg-titanium-800/50",
