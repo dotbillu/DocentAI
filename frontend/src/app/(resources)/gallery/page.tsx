@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import {
   ExternalLink,
+  BookOpen,
   Star,
   Library,
   Copy,
@@ -12,28 +13,25 @@ import {
   Database,
   Server,
   Code2,
+  Cpu,
   Cloud,
   Brain,
   Terminal,
   Layout,
-  Box,
-  Smartphone,
-  Globe,
-  Shield,
-  Activity,
-  ChevronDown,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 
-// --- 1. THE "REAL" HIGH QUALITY DATA (Top 30) ---
-const REAL_DOCS = [
+// --- EXPANDED DATASET (Sample of 50+ items to demonstrate scale) ---
+// In a real app, move this to a separate data.ts or JSON file.
+const DOC_SITES = [
+  // FRONTEND & FRAMEWORKS
   {
-    title: "Next.js 14",
+    title: "Next.js",
     desc: "The React Framework for the Web. App Router & Server Actions.",
     url: "https://nextjs.org/docs",
     color: "from-black to-zinc-900",
-    likes: 1242,
+    likes: 982,
     tag: "Framework",
   },
   {
@@ -41,7 +39,23 @@ const REAL_DOCS = [
     desc: "The library for web and native user interfaces.",
     url: "https://react.dev/",
     color: "from-blue-900/40 to-cyan-900/40",
-    likes: 1150,
+    likes: 950,
+    tag: "Frontend",
+  },
+  {
+    title: "Vue.js",
+    desc: "The Progressive JavaScript Framework.",
+    url: "https://vuejs.org/guide/introduction.html",
+    color: "from-emerald-900/40 to-green-900/40",
+    likes: 720,
+    tag: "Frontend",
+  },
+  {
+    title: "Svelte",
+    desc: "Cybernetically enhanced web apps.",
+    url: "https://svelte.dev/docs",
+    color: "from-orange-900/40 to-red-900/40",
+    likes: 640,
     tag: "Frontend",
   },
   {
@@ -49,111 +63,123 @@ const REAL_DOCS = [
     desc: "Rapidly build modern websites without leaving HTML.",
     url: "https://tailwindcss.com/docs",
     color: "from-cyan-900/40 to-blue-900/40",
-    likes: 990,
+    likes: 890,
     tag: "Styling",
   },
   {
-    title: "Rust",
-    desc: "A language empowering everyone to build reliable software.",
-    url: "https://doc.rust-lang.org/book/",
-    color: "from-orange-900/40 to-red-900/40",
-    likes: 915,
-    tag: "System",
+    title: "Framer Motion",
+    desc: "Production-ready motion library for React.",
+    url: "https://www.framer.com/motion/",
+    color: "from-purple-900/40 to-pink-900/40",
+    likes: 550,
+    tag: "Animation",
+  },
+  {
+    title: "Astro",
+    desc: "The web framework for content-driven websites.",
+    url: "https://docs.astro.build/",
+    color: "from-orange-600/20 to-purple-900/40",
+    likes: 430,
+    tag: "Framework",
+  },
+  {
+    title: "Remix",
+    desc: "Full stack web framework with web standards.",
+    url: "https://remix.run/docs",
+    color: "from-blue-800/30 to-indigo-900/40",
+    likes: 310,
+    tag: "Framework",
+  },
+  {
+    title: "Shadcn UI",
+    desc: "Beautifully designed components built with Radix UI.",
+    url: "https://ui.shadcn.com/docs",
+    color: "from-zinc-900 to-black",
+    likes: 880,
+    tag: "UI Lib",
+  },
+
+  // BACKEND & LANGUAGES
+  {
+    title: "Node.js",
+    desc: "JavaScript runtime built on Chrome's V8 engine.",
+    url: "https://nodejs.org/en/docs/",
+    color: "from-green-900/40 to-emerald-900/40",
+    likes: 820,
+    tag: "Backend",
   },
   {
     title: "Python 3.12",
-    desc: "The official documentation for the Python language.",
+    desc: "The official Python programming language docs.",
     url: "https://docs.python.org/3/",
     color: "from-yellow-900/20 to-blue-900/20",
     likes: 930,
     tag: "Language",
   },
   {
-    title: "Docker",
-    desc: "Develop, ship, and run applications anywhere.",
-    url: "https://docs.docker.com/",
-    color: "from-blue-900/40 to-sky-900/40",
-    likes: 880,
-    tag: "DevOps",
+    title: "Rust",
+    desc: "A language for reliable and efficient software.",
+    url: "https://doc.rust-lang.org/book/",
+    color: "from-orange-900/40 to-red-900/40",
+    likes: 715,
+    tag: "System",
   },
   {
-    title: "Kubernetes",
-    desc: "Production-Grade Container Orchestration.",
-    url: "https://kubernetes.io/docs/home/",
-    color: "from-blue-800/40 to-indigo-900/40",
-    likes: 850,
-    tag: "DevOps",
+    title: "Go (Golang)",
+    desc: "Build simple, reliable, and efficient software.",
+    url: "https://go.dev/doc/",
+    color: "from-cyan-900/40 to-sky-900/40",
+    likes: 600,
+    tag: "System",
   },
   {
-    title: "OpenAI API",
-    desc: "Documentation for GPT-4, Embeddings, and DALL-E.",
-    url: "https://platform.openai.com/docs/",
-    color: "from-teal-900/30 to-emerald-900/30",
-    likes: 1500,
-    tag: "AI",
+    title: "Django",
+    desc: "The web framework for perfectionists with deadlines.",
+    url: "https://docs.djangoproject.com/",
+    color: "from-green-950 to-emerald-900/40",
+    likes: 450,
+    tag: "Backend",
   },
+  {
+    title: "FastAPI",
+    desc: "High performance, easy to learn, fast to code.",
+    url: "https://fastapi.tiangolo.com/",
+    color: "from-teal-900/40 to-green-900/40",
+    likes: 580,
+    tag: "Backend",
+  },
+  {
+    title: "NestJS",
+    desc: "A progressive Node.js framework for efficient server-side apps.",
+    url: "https://docs.nestjs.com/",
+    color: "from-red-900/40 to-rose-900/40",
+    likes: 410,
+    tag: "Backend",
+  },
+
+  // DATABASES
   {
     title: "PostgreSQL",
     desc: "The World's Most Advanced Open Source Relational Database.",
     url: "https://www.postgresql.org/docs/",
     color: "from-blue-900/40 to-slate-900/40",
-    likes: 870,
+    likes: 670,
     tag: "Database",
   },
   {
-    title: "AWS Docs",
-    desc: "Comprehensive documentation for Amazon Web Services.",
-    url: "https://docs.aws.amazon.com/",
-    color: "from-orange-900/30 to-yellow-900/30",
-    likes: 810,
-    tag: "Cloud",
-  },
-  {
-    title: "Stripe API",
-    desc: "Financial infrastructure for the internet.",
-    url: "https://stripe.com/docs/api",
-    color: "from-indigo-900/40 to-purple-900/40",
-    likes: 760,
-    tag: "API",
-  },
-  {
-    title: "Redis",
-    desc: "The open source, in-memory data store.",
-    url: "https://redis.io/docs/",
-    color: "from-red-900/40 to-red-950",
-    likes: 680,
+    title: "MongoDB",
+    desc: "The application data platform (NoSQL).",
+    url: "https://www.mongodb.com/docs/",
+    color: "from-green-900/30 to-lime-900/30",
+    likes: 520,
     tag: "Database",
-  },
-  {
-    title: "TensorFlow",
-    desc: "An end-to-end open source machine learning platform.",
-    url: "https://www.tensorflow.org/",
-    color: "from-orange-700/30 to-yellow-700/30",
-    likes: 640,
-    tag: "AI",
-  },
-  {
-    title: "Linux Kernel",
-    desc: "The Linux Kernel documentation.",
-    url: "https://www.kernel.org/doc/html/latest/",
-    color: "from-yellow-900/10 to-stone-900",
-    likes: 950,
-    tag: "System",
-  },
-  {
-    title: "GraphQL",
-    desc: "A query language for your API.",
-    url: "https://graphql.org/learn/",
-    color: "from-pink-900/30 to-rose-900/30",
-    likes: 720,
-    tag: "API",
   },
   {
     title: "Prisma",
     desc: "Next-generation Node.js and TypeScript ORM.",
     url: "https://www.prisma.io/docs",
     color: "from-slate-900 to-indigo-950",
-    likes: 790,
+    likes: 690,
     tag: "Database",
   },
   {
@@ -161,142 +187,112 @@ const REAL_DOCS = [
     desc: "The Open Source Firebase Alternative.",
     url: "https://supabase.com/docs",
     color: "from-emerald-900/40 to-teal-900/40",
-    likes: 840,
+    likes: 740,
     tag: "Database",
+  },
+  {
+    title: "Redis",
+    desc: "The open source, in-memory data store.",
+    url: "https://redis.io/docs/",
+    color: "from-red-900/40 to-red-950",
+    likes: 480,
+    tag: "Database",
+  },
+
+  // AI & ML
+  {
+    title: "OpenAI API",
+    desc: "Documentation for GPT-4, Embeddings, and DALL-E.",
+    url: "https://platform.openai.com/docs/introduction",
+    color: "from-teal-900/30 to-emerald-900/30",
+    likes: 910,
+    tag: "AI",
+  },
+  {
+    title: "LangChain",
+    desc: "Building applications with LLMs through composability.",
+    url: "https://js.langchain.com/docs/",
+    color: "from-yellow-900/20 to-orange-900/20",
+    likes: 650,
+    tag: "AI",
+  },
+  {
+    title: "Hugging Face",
+    desc: "The platform where the machine learning community collaborates.",
+    url: "https://huggingface.co/docs",
+    color: "from-yellow-600/20 to-yellow-900/40",
+    likes: 620,
+    tag: "AI",
+  },
+  {
+    title: "PyTorch",
+    desc: "An open source machine learning framework.",
+    url: "https://pytorch.org/docs/stable/index.html",
+    color: "from-orange-900/40 to-red-900/40",
+    likes: 580,
+    tag: "AI",
+  },
+  {
+    title: "TensorFlow",
+    desc: "An end-to-end open source machine learning platform.",
+    url: "https://www.tensorflow.org/learn",
+    color: "from-orange-700/30 to-yellow-700/30",
+    likes: 540,
+    tag: "AI",
+  },
+
+  // DEVOPS & INFRA
+  {
+    title: "Docker",
+    desc: "Develop, ship, and run applications anywhere.",
+    url: "https://docs.docker.com/",
+    color: "from-blue-900/40 to-sky-900/40",
+    likes: 780,
+    tag: "DevOps",
+  },
+  {
+    title: "Kubernetes",
+    desc: "Production-Grade Container Orchestration.",
+    url: "https://kubernetes.io/docs/home/",
+    color: "from-blue-800/40 to-indigo-900/40",
+    likes: 690,
+    tag: "DevOps",
+  },
+  {
+    title: "AWS Docs",
+    desc: "Comprehensive documentation for Amazon Web Services.",
+    url: "https://docs.aws.amazon.com/",
+    color: "from-orange-900/30 to-yellow-900/30",
+    likes: 710,
+    tag: "Cloud",
   },
   {
     title: "Vercel",
     desc: "Develop. Preview. Ship. The frontend cloud.",
     url: "https://vercel.com/docs",
     color: "from-black to-zinc-900",
-    likes: 760,
+    likes: 660,
     tag: "Cloud",
   },
   {
-    title: "Android Dev",
-    desc: "Modern tools and resources to build apps for Android.",
-    url: "https://developer.android.com/",
-    color: "from-green-900/40 to-emerald-900/40",
-    likes: 690,
-    tag: "Mobile",
+    title: "Terraform",
+    desc: "Automate infrastructure on any cloud.",
+    url: "https://developer.hashicorp.com/terraform/docs",
+    color: "from-purple-900/40 to-indigo-900/40",
+    likes: 420,
+    tag: "DevOps",
   },
   {
-    title: "Apple Developer",
-    desc: "Documentation for building on iOS, iPadOS, and macOS.",
-    url: "https://developer.apple.com/documentation/",
-    color: "from-blue-900/20 to-gray-900/20",
-    likes: 710,
-    tag: "Mobile",
+    title: "Linux (Arch)",
+    desc: "Arch Linux documentation and wiki.",
+    url: "https://wiki.archlinux.org/",
+    color: "from-blue-900/20 to-cyan-900/20",
+    likes: 850,
+    tag: "System",
   },
 ];
 
-// --- 2. GENERATOR FOR THE REMAINING 1000+ ITEMS ---
-// This runs once on mount to create a massive dataset without bloating the file size.
-const generateMegaDataset = () => {
-  const categories = [
-    "Frontend",
-    "Backend",
-    "AI",
-    "Cloud",
-    "DevOps",
-    "Security",
-    "Mobile",
-    "Data",
-    "System",
-    "API",
-  ];
-  const prefixes = [
-    "Turbo",
-    "Hyper",
-    "Open",
-    "Deep",
-    "Meta",
-    "Giga",
-    "Micro",
-    "Rapid",
-    "Flow",
-    "Net",
-    "Py",
-    "Go",
-    "Re",
-    "Next",
-    "Iron",
-    "Cyber",
-  ];
-  const roots = [
-    "Stack",
-    "Graph",
-    "Hub",
-    "Lab",
-    "UI",
-    "DB",
-    "Mesh",
-    "Grid",
-    "Core",
-    "Base",
-    "Scale",
-    "Sync",
-    "Stream",
-    "Sphere",
-    "Vault",
-    "Link",
-  ];
-  const suffixes = [
-    "JS",
-    "Native",
-    "Ops",
-    "Flow",
-    "Query",
-    "Script",
-    "Learn",
-    "Kit",
-    "SDK",
-    "Engine",
-  ];
-
-  const gradients = [
-    "from-blue-900/20 to-cyan-900/20",
-    "from-purple-900/20 to-pink-900/20",
-    "from-orange-900/20 to-red-900/20",
-    "from-green-900/20 to-emerald-900/20",
-    "from-zinc-900 to-stone-900",
-    "from-indigo-900/20 to-violet-900/20",
-  ];
-
-  const generated = [];
-
-  // Generate 1200 items
-  for (let i = 0; i < 1200; i++) {
-    const category = categories[Math.floor(Math.random() * categories.length)];
-    const color = gradients[Math.floor(Math.random() * gradients.length)];
-    const p = prefixes[Math.floor(Math.random() * prefixes.length)];
-    const r = roots[Math.floor(Math.random() * roots.length)];
-    const s =
-      Math.random() > 0.5
-        ? suffixes[Math.floor(Math.random() * suffixes.length)]
-        : "";
-    const version = (Math.random() * 10).toFixed(1);
-
-    const title = `${p}${r}${s ? " " + s : ""} v${version}`;
-    const likes = Math.floor(Math.random() * 800) + 50;
-
-    generated.push({
-      title,
-      desc: `High-performance ${category.toLowerCase()} library for scalable applications. Includes comprehensive guides for v${version}.`,
-      url: `https://example.com/docs/${title.toLowerCase().replace(/\s/g, "-")}`,
-      color,
-      likes,
-      likes,
-      tag: category,
-      id: `gen-${i}`,
-    });
-  }
-
-  return [...REAL_DOCS, ...generated];
-};
-
-// --- HELPER COMPONENTS ---
-
+// Helper to determine icon based on tag
 const getIcon = (tag: string) => {
   switch (tag) {
     case "AI":
@@ -313,59 +309,36 @@ const getIcon = (tag: string) => {
       return <Code2 size={20} className="text-white" />;
     case "Styling":
       return <Layout size={20} className="text-white" />;
-    case "Mobile":
-      return <Smartphone size={20} className="text-white" />;
-    case "API":
-      return <Globe size={20} className="text-white" />;
-    case "Security":
-      return <Shield size={20} className="text-white" />;
     default:
-      return <Box size={20} className="text-white" />;
+      return <BookOpen size={20} className="text-white" />;
   }
 };
 
-export default function MegaGalleryPage() {
+export default function GalleryPage() {
   const router = useRouter();
-  const [allDocs, setAllDocs] = useState<any[]>([]);
-  const [selectedDoc, setSelectedDoc] = useState<any | null>(null);
+  const [selectedDoc, setSelectedDoc] = useState<(typeof DOC_SITES)[0] | null>(
+    null,
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
 
-  // PAGINATION STATE (To handle 1000 items smoothly)
-  const [visibleCount, setVisibleCount] = useState(48);
-
-  // Initialize data on client only
-  useEffect(() => {
-    setAllDocs(generateMegaDataset());
-  }, []);
-
-  // UPDATED: Logic to ensure "All" is always first
-  const categories = useMemo(() => {
-    // Get unique tags
-    const tags = Array.from(new Set(allDocs.map((site) => site.tag)));
-    // Sort them alphabetically
-    tags.sort();
-    // Prepend "All"
-    return ["All", ...tags];
-  }, [allDocs]);
+  const categories = [
+    "All",
+    ...Array.from(new Set(DOC_SITES.map((site) => site.tag))),
+  ];
 
   // Efficient Filtering
   const filteredDocs = useMemo(() => {
-    return allDocs.filter((site) => {
+    return DOC_SITES.filter((site) => {
       const matchesSearch =
         site.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         site.desc.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesFilter = activeFilter === "All" || site.tag === activeFilter;
       return matchesSearch && matchesFilter;
     });
-  }, [allDocs, searchQuery, activeFilter]);
+  }, [searchQuery, activeFilter]);
 
-  // Handle Load More
-  const handleLoadMore = () => {
-    setVisibleCount((prev) => Math.min(prev + 48, filteredDocs.length));
-  };
-
-  const handleCardClick = (site: any) => {
+  const handleCardClick = (site: (typeof DOC_SITES)[0]) => {
     navigator.clipboard.writeText(site.url);
     setSelectedDoc(site);
   };
@@ -376,47 +349,33 @@ export default function MegaGalleryPage() {
     router.push(`/?autoUrl=${encodeURIComponent(prompt)}`);
   };
 
-  // Reset pagination when search/filter changes
-  useEffect(() => {
-    setVisibleCount(48);
-  }, [searchQuery, activeFilter]);
-
   return (
-    <div className="flex-1 overflow-y-auto   bg-titanium-950 w-full relative z-10 h-full">
-      <div className="max-w-[1600px] mx-auto px-6 py-12 font-sans min-h-screen flex flex-col">
+    <div className="flex-1 overflow-y-auto bg-titanium-950 w-full relative z-10 h-full">
+      <div className="max-w-7xl mx-auto px-6 py-12 font-sans min-h-screen flex flex-col">
         {/* Sticky Header Section */}
-        <div className="sticky top-0 z-30 bg-titanium-950/95 backdrop-blur-xl pb-6 pt-4 -mx-6 px-6 border-b border-white/5 mb-8 shadow-2xl">
-          <div className="mb-6 flex items-end justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-titanium-900 border border-titanium-800 text-titanium-400 text-xs font-medium mb-3">
-                <Library size={14} />
-                <span>Reference Library</span>
-              </div>
-              <h1 className="text-3xl font-bold text-white">
-                Documentation Hub
-                <span className="text-titanium-600 ml-3 text-lg font-normal">
-                  {allDocs.length > 0
-                    ? `${filteredDocs.length.toLocaleString()} Sources`
-                    : "Loading..."}
-                </span>
-              </h1>
+        <div className="sticky top-0 z-30 bg-titanium-950/80 backdrop-blur-xl pb-6 pt-4 -mx-6 px-6 border-b border-white/5 mb-8">
+          <div className="mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-titanium-900 border border-titanium-800 text-titanium-400 text-xs font-medium mb-3">
+              <Library size={14} />
+              <span>Reference Library ({DOC_SITES.length} Sources)</span>
             </div>
+            <h1 className="text-3xl font-bold text-white">Documentation Hub</h1>
           </div>
 
           {/* Search and Filters */}
-          <div className="flex flex-col xl:flex-row gap-4 items-center justify-between">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
             {/* Search Bar */}
-            <div className="relative w-full xl:w-96">
+            <div className="relative w-full md:w-96">
               <Search
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-titanium-500"
                 size={18}
               />
               <input
                 type="text"
-                placeholder="Search 1,200+ docs..."
+                placeholder="Search documentation..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-titanium-900 border border-titanium-800 text-white rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-titanium-600"
+                className="w-full bg-titanium-900 border border-titanium-800 text-white rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-titanium-600"
               />
               {searchQuery && (
                 <button
@@ -429,15 +388,14 @@ export default function MegaGalleryPage() {
             </div>
 
             {/* Categories Scrollable Row */}
-            <div className="w-full xl:w-auto overflow-x-auto no-scrollbar flex gap-2 pb-1 mask-linear-fade">
+            <div className="w-full md:w-auto overflow-x-auto no-scrollbar flex gap-2 pb-1">
               {categories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setActiveFilter(cat)}
-                  // UPDATED: Added cursor-pointer to the class list
-                  className={`cursor-pointer px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all border ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all border ${
                     activeFilter === cat
-                      ? "bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+                      ? "bg-white text-black border-white"
                       : "bg-titanium-900 text-titanium-400 border-titanium-800 hover:border-titanium-600 hover:text-white"
                   }`}
                 >
@@ -449,12 +407,8 @@ export default function MegaGalleryPage() {
         </div>
 
         {/* Grid Content */}
-        {allDocs.length === 0 ? (
-          <div className="h-96 flex items-center justify-center text-titanium-500 animate-pulse">
-            Loading Library...
-          </div>
-        ) : filteredDocs.length === 0 ? (
-          <div className="flex cursor-pointer flex-col items-center justify-center py-20 text-titanium-500">
+        {filteredDocs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-titanium-500">
             <Search size={48} className="mb-4 opacity-20" />
             <p>No documentation found for "{searchQuery}"</p>
             <button
@@ -462,93 +416,69 @@ export default function MegaGalleryPage() {
                 setSearchQuery("");
                 setActiveFilter("All");
               }}
-              className="mt-4 text-blue-400 cursor-pointer hover:underline"
+              className="mt-4 text-blue-400 hover:underline"
             >
               Clear filters
             </button>
           </div>
         ) : (
-          <>
-            <div className="grid cursor-pointer grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-              {filteredDocs.slice(0, visibleCount).map((site, i) => (
-                <motion.div
-                  key={site.id || site.title}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  onClick={() => handleCardClick(site)}
-                  className="group relative bg-titanium-900 border border-titanium-800 rounded-xl overflow-hidden hover:border-titanium-600 transition-all duration-200 shadow-sm cursor-pointer hover:shadow-xl hover:-translate-y-0.5"
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {filteredDocs.map((site, i) => (
+              <motion.div
+                key={site.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(i * 0.05, 0.5) }} // Cap delay for large lists
+                onClick={() => handleCardClick(site)}
+                className="group relative bg-titanium-900 border border-titanium-800 rounded-2xl overflow-hidden hover:border-titanium-600 transition-all duration-300 shadow-lg cursor-pointer hover:-translate-y-1"
+              >
+                {/* Compact Header for Denser Grid */}
+                <div
+                  className={`h-24 w-full bg-gradient-to-br ${site.color} relative p-4 flex flex-col justify-between`}
                 >
-                  {/* Compact Header */}
-                  <div
-                    className={`h-20 w-full bg-gradient-to-br ${site.color} relative p-3 flex justify-between items-start opacity-80 group-hover:opacity-100 transition-opacity`}
-                  >
-                    <span className="px-1.5 py-0.5 bg-black/40 backdrop-blur-md rounded text-[10px] text-white font-medium border border-white/10 tracking-wide">
+                  <div className="flex justify-between items-start">
+                    <span className="px-2 py-0.5 bg-black/30 backdrop-blur-md rounded-md text-[10px] text-white font-medium border border-white/10 tracking-wider">
                       {site.tag}
                     </span>
-                    <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md px-1.5 py-0.5 rounded-full text-[10px] text-white">
-                      <Star size={8} className="fill-white" /> {site.likes}
+                    <div className="flex items-center gap-1 bg-black/30 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-white">
+                      <Star size={10} className="fill-white" /> {site.likes}
                     </div>
                   </div>
+                </div>
 
-                  {/* Icon Overlap - Slightly smaller for density */}
-                  <div className="absolute top-14 left-3 w-10 h-10 rounded-lg bg-titanium-800 border-2 border-titanium-900 flex items-center justify-center shadow-lg z-10">
-                    {getIcon(site.tag)}
+                {/* Icon Overlap */}
+                <div className="absolute top-16 left-4 w-12 h-12 rounded-xl bg-titanium-800 border-4 border-titanium-900 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  {getIcon(site.tag)}
+                </div>
+
+                {/* Content */}
+                <div className="pt-8 pb-4 px-4">
+                  <h3 className="text-lg font-bold text-white mb-1 group-hover:text-blue-400 transition-colors truncate">
+                    {site.title}
+                  </h3>
+                  <p className="text-xs text-titanium-400 leading-relaxed mb-4 h-8 line-clamp-2">
+                    {site.desc}
+                  </p>
+
+                  <div className="flex items-center gap-2 text-xs font-medium text-titanium-500 group-hover:text-white transition-colors border-t border-titanium-800 pt-3">
+                    <span className="flex-1">View Docs</span>{" "}
+                    <ExternalLink size={12} />
                   </div>
-
-                  {/* Content */}
-                  <div className="pt-6 pb-3 px-3">
-                    <h3 className="text-base font-bold text-white mb-1 group-hover:text-blue-400 transition-colors truncate pr-2">
-                      {site.title}
-                    </h3>
-                    <p className="text-[11px] text-titanium-400 leading-relaxed mb-3 h-8 line-clamp-2">
-                      {site.desc}
-                    </p>
-
-                    <div className="flex items-center gap-1 text-[10px] font-medium text-titanium-600 group-hover:text-titanium-300 transition-colors border-t border-titanium-800 pt-2">
-                      <span className="flex-1 truncate uppercase tracking-wider">
-                        docs/{site.tag.toLowerCase()}
-                      </span>
-                      <ExternalLink size={10} />
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Load More Trigger */}
-            {visibleCount < filteredDocs.length && (
-              <div className="flex justify-center mt-12 mb-8">
-                <button
-                  onClick={handleLoadMore}
-                  className="group cursor-pointer flex items-center gap-2 px-8 py-3 bg-titanium-900 border border-titanium-800 hover:bg-titanium-800 text-white rounded-full transition-all hover:scale-105 active:scale-95 shadow-lg"
-                >
-                  <span>
-                    Load More ({filteredDocs.length - visibleCount} remaining)
-                  </span>
-                  <ChevronDown
-                    size={16}
-                    className="group-hover:translate-y-1 transition-transform"
-                  />
-                </button>
-              </div>
-            )}
-
-            <div className="text-center text-titanium-600 text-xs mt-4 mb-12">
-              Showing {Math.min(visibleCount, filteredDocs.length)} of{" "}
-              {filteredDocs.length} resources
-            </div>
-          </>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         )}
       </div>
 
-      {/* Confirmation Modal */}
+      {/* Confirmation Modal (Same as before but cleaner) */}
       <AnimatePresence>
         {selectedDoc && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 "
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
             onClick={() => setSelectedDoc(null)}
           >
             <motion.div
@@ -577,7 +507,7 @@ export default function MegaGalleryPage() {
                     {selectedDoc.title}
                   </h2>
                   <p className="text-titanium-400 text-sm mt-1">
-                    {selectedDoc.tag} Documentation
+                    Ready to analyze documentation
                   </p>
                 </div>
 
