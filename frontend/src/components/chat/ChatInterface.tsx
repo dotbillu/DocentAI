@@ -19,7 +19,7 @@ import { db } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 import { motion, AnimatePresence } from "framer-motion";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 type Message = {
   role: "user" | "ai";
@@ -160,7 +160,7 @@ export default function ChatInterface() {
   const performChat = async (
     text: string,
     history: Message[],
-    file?: File | null
+    file?: File | null,
   ) => {
     setIsLoading(true);
     setTrainingLogs([]);
@@ -214,10 +214,7 @@ export default function ChatInterface() {
             }
             setCurrentStatus("Knowledge Base Updated.");
           } else {
-            setTrainingLogs((prev) => [
-              ...prev,
-              "Error: Could not crawl URL.",
-            ]);
+            setTrainingLogs((prev) => [...prev, "Error: Could not crawl URL."]);
           }
         } catch (err) {
           console.error("Crawl error", err);
@@ -324,7 +321,7 @@ export default function ChatInterface() {
                     transition={{ duration: 0.3, ease: "easeOut" }}
                     className={clsx(
                       "flex flex-col gap-2",
-                      msg.role === "ai" ? "items-start" : "items-end"
+                      msg.role === "ai" ? "items-start" : "items-end",
                     )}
                   >
                     <div
@@ -332,7 +329,7 @@ export default function ChatInterface() {
                         "flex flex-col min-w-0",
                         msg.role === "user"
                           ? "items-end max-w-[85%]"
-                          : "items-start w-full"
+                          : "items-start w-full",
                       )}
                     >
                       <div
@@ -340,7 +337,7 @@ export default function ChatInterface() {
                           "rounded-lg text-[16px] leading-relaxed relative group/msg",
                           msg.role === "user"
                             ? "bg-[#0F1014] shadow shadow-zinc-800 text-white px-5 py-3 rounded-4xl"
-                            : "bg-transparent text-zinc-100 pl-0 pt-0 w-full"
+                            : "bg-transparent text-zinc-100 pl-0 pt-0 w-full",
                         )}
                       >
                         {msg.role === "ai" ? (
